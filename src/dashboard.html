@@ -391,9 +391,9 @@ function render(){
 
   document.getElementById("season").textContent = DATA.temporada;
   document.getElementById("meta").textContent =
-    `Generado el ${DATA.generado} · red neuronal entrenada con `+
-    `${DATA.modelo.partidosEntrenamiento.toLocaleString("es")} partidos reales `+
-    `y ${DATA.modelo.caracteristicas} características por partido`;
+    `Generado el ${DATA.generado} · datos reales hasta el partido del ${DATA.ultimoPartido} · `+
+    `red neuronal reentrenada con ${DATA.modelo.partidosEntrenamiento.toLocaleString("es")} `+
+    `partidos y ${DATA.modelo.caracteristicas} características por partido`;
 
   const r = DATA.modelo.reciente;
   const cards = [

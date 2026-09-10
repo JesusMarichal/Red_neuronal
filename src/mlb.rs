@@ -68,23 +68,35 @@ pub fn get_json(url: &str, cache_file: &str, max_age_hours: Option<u64>) -> Resu
     serde_json::from_str(&body).map_err(|e| format!("JSON invalido de {url}: {e}"))
 }
 
+/// Cuánta frescura se exige a los datos históricos.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Freshness {
+    /// Temporadas cerradas del cache; la actual, como mucho 6 h de antigüedad.
+    Normal,
+    /// Temporadas cerradas del cache; la actual SIEMPRE recién bajada.
+    /// Es lo que usa el panel: el modelo debe conocer los partidos de anoche.
+    Live,
+    /// Vuelve a bajarlo todo, incluidas las temporadas ya cerradas.
+    Full,
+}
+
 fn cache_path(season: i32) -> PathBuf {
     Path::new(CACHE_DIR).join(format!("schedule_{season}.json"))
 }
 
 /// Descarga (o lee del cache) el calendario completo de temporada regular.
-fn fetch_season_json(season: i32, refresh: bool) -> Result<Value, String> {
+fn fetch_season_json(season: i32, fresh: Freshness) -> Result<Value, String> {
     let url = format!(
         "https://statsapi.mlb.com/api/v1/schedule?sportId=1&gameType=R\
          &startDate={season}-02-01&endDate={season}-11-30&hydrate=probablePitcher"
     );
-    // Las temporadas cerradas ya no cambian; la actual se refresca cada 6 h.
-    let max_age = if refresh {
-        Some(0)
-    } else if season >= current_year() {
-        Some(6)
-    } else {
-        None
+    // Las temporadas cerradas ya no cambian nunca: cache eterno.
+    let en_curso = season >= current_year();
+    let max_age = match fresh {
+        Freshness::Full => Some(0),
+        Freshness::Live if en_curso => Some(0),
+        _ if en_curso => Some(6),
+        _ => None,
     };
     if cache_read(&cache_path(season), max_age).is_none() {
         println!("  -> GET temporada {season} ...");
@@ -173,10 +185,10 @@ fn parse_season(json: &Value, season: i32) -> Vec<RawGame> {
 }
 
 /// Trae todas las temporadas pedidas, ordenadas cronológicamente.
-pub fn fetch_games(seasons: &[i32], refresh: bool) -> Result<Vec<RawGame>, String> {
+pub fn fetch_games(seasons: &[i32], fresh: Freshness) -> Result<Vec<RawGame>, String> {
     let mut all = Vec::new();
     for &s in seasons {
-        let json = fetch_season_json(s, refresh)?;
+        let json = fetch_season_json(s, fresh)?;
         let games = parse_season(&json, s);
         println!("  temporada {s}: {} partidos finalizados", games.len());
         all.extend(games);
@@ -229,8 +241,8 @@ pub fn fetch_scheduled(from: &str, days: i64) -> Result<Vec<ScheduledGame>, Stri
         "https://statsapi.mlb.com/api/v1/schedule?sportId=1&gameType=R\
          &startDate={from}&endDate={end}&hydrate=probablePitcher,venue,team"
     );
-    // Los abridores se anuncian con poca antelación: cache corta.
-    let json = get_json(&url, &format!("upcoming_{from}_{days}.json"), Some(1))?;
+    // Los abridores se anuncian y cambian a última hora: siempre recién bajado.
+    let json = get_json(&url, &format!("upcoming_{from}_{days}.json"), Some(0))?;
 
     let mut out = Vec::new();
     let Some(dates) = json.get("dates").and_then(|d| d.as_array()) else {

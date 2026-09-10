@@ -15,6 +15,7 @@ use burn::backend::{Autodiff, NdArray};
 
 use backtest::usable;
 use features::{FeatureBuilder, Sample};
+use mlb::Freshness;
 use training::TrainConfig;
 
 type Backend = Autodiff<NdArray>;
@@ -33,7 +34,7 @@ fn main() {
     match cmd {
         "fetch" => {
             let seasons = parse_seasons(&args[1..]);
-            build_dataset(&seasons, true);
+            build_dataset(&seasons, Freshness::Full);
         }
         "train" => {
             let samples = ensure_dataset();
@@ -103,8 +104,12 @@ fn build_payload<B: burn::tensor::backend::AutodiffBackend>(
     days: i64,
 ) -> serde_json::Value {
     header("PANEL EN VIVO - TEMPORADA EN CURSO");
-    let games = mlb::fetch_games(&DEFAULT_SEASONS, false).expect("fallo la descarga de partidos");
-    println!("{} partidos historicos cargados.", games.len());
+    // Live: la temporada en curso se vuelve a bajar siempre, para que el modelo
+    // entrene con los resultados de anoche y no con una copia de hace horas.
+    let games = mlb::fetch_games(&DEFAULT_SEASONS, Freshness::Live)
+        .expect("fallo la descarga de partidos");
+    let ultimo = games.last().map(|g| g.date.as_str()).unwrap_or("?");
+    println!("{} partidos historicos cargados (ultimo: {ultimo}).", games.len());
 
     let mut fb = FeatureBuilder::new();
     let samples = fb.build(&games);
@@ -134,9 +139,9 @@ fn header(title: &str) {
 }
 
 /// Descarga los partidos reales y genera el CSV de características.
-fn build_dataset(seasons: &[i32], refresh: bool) -> Vec<Sample> {
+fn build_dataset(seasons: &[i32], fresh: Freshness) -> Vec<Sample> {
     header("DESCARGA DE DATOS REALES (MLB Stats API)");
-    let games = mlb::fetch_games(seasons, refresh).expect("fallo la descarga de partidos");
+    let games = mlb::fetch_games(seasons, fresh).expect("fallo la descarga de partidos");
     println!("Total: {} partidos reales finalizados.", games.len());
 
     println!("\nConstruyendo caracteristicas cronologicas (sin fuga de datos)...");
@@ -163,7 +168,7 @@ fn ensure_dataset() -> Vec<Sample> {
             Err(e) => println!("CSV no utilizable ({e}), regenerando..."),
         }
     }
-    build_dataset(&DEFAULT_SEASONS, false)
+    build_dataset(&DEFAULT_SEASONS, Freshness::Normal)
 }
 
 /// Entrenamiento único: pasado -> última temporada completa como prueba.

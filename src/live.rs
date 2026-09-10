@@ -260,8 +260,12 @@ pub fn build_payload<B: AutodiffBackend>(
 
     let confirmadas: usize = usable_games.iter().filter(|(g, _)| g.pitchers_confirmed).count();
 
+    // Último partido ya terminado que entró al entrenamiento.
+    let ultimo = games.last().map(|g| g.date.clone()).unwrap_or_default();
+
     Ok(json!({
         "generado": Local::now().format("%Y-%m-%d %H:%M").to_string(),
+        "ultimoPartido": ultimo,
         "temporada": season,
         "modelo": {
             "partidosEntrenamiento": hist.len(),

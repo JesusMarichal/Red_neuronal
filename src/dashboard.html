@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Predicciones MLB</title>
+<style>
+  :root{
+    --bg:#f4f6f8; --card:#ffffff; --soft:#f8fafb; --line:#e2e6ea; --line2:#eef1f4;
+    --txt:#111a21; --dim:#5c6b78; --dim2:#8a97a3;
+    --away:#1355c4; --awaybg:#e8f0fe;
+    --home:#12734a; --homebg:#e6f5ed;
+    --warn:#9a5b00; --warnbg:#fff6e5; --warnline:#f0d9a8;
+    --miss:#b3261e;
+    --shadow:0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--txt);
+       font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1120px;margin:0 auto;padding:26px 18px 72px}
+
+  /* ---------------- cabecera ---------------- */
+  header{margin-bottom:20px}
+  h1{margin:0;font-size:27px;letter-spacing:-.02em;font-weight:700}
+  .sub{color:var(--dim);font-size:13.5px;margin-top:5px}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px;margin:20px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;
+        padding:13px 15px;box-shadow:var(--shadow)}
+  .stat .k{color:var(--dim);font-size:11px;text-transform:uppercase;
+           letter-spacing:.06em;font-weight:600}
+  .stat .v{font-size:26px;font-weight:700;margin:3px 0 1px;letter-spacing:-.02em}
+  .stat .d{font-size:12px;color:var(--dim2);line-height:1.35}
+
+  .info{background:var(--card);border:1px solid var(--line);border-radius:10px;
+        padding:16px 18px;margin:16px 0;box-shadow:var(--shadow)}
+  .info h3{margin:0 0 8px;font-size:14px;font-weight:700}
+  .info p{margin:0 0 8px;font-size:13.5px;color:var(--dim)}
+  .info p:last-child{margin-bottom:0}
+  .info b{color:var(--txt)}
+  .warnbox{background:var(--warnbg);border-color:var(--warnline)}
+  .warnbox h3,.warnbox b{color:#7a4a00}
+  .warnbox p{color:#8a5a10}
+
+  /* ---------------- pestañas ---------------- */
+  .tabs{display:flex;gap:8px;margin:22px 0 16px;flex-wrap:wrap}
+  .tab{background:var(--card);border:1px solid var(--line);color:var(--dim);
+       padding:9px 16px;border-radius:8px;cursor:pointer;font-size:13.5px;
+       font-weight:600;font-family:inherit;box-shadow:var(--shadow)}
+  .tab:hover{color:var(--txt);border-color:#cdd4db}
+  .tab.on{background:var(--txt);color:#fff;border-color:var(--txt)}
+
+  /* ---------------- separador de día ---------------- */
+  .daybar{display:flex;align-items:baseline;gap:12px;margin:28px 0 12px}
+  .daybar h2{margin:0;font-size:17px;font-weight:700;text-transform:capitalize;
+             letter-spacing:-.01em}
+  .daybar .rule{flex:1;height:1px;background:var(--line)}
+  .daybar .cnt{color:var(--dim2);font-size:12.5px;white-space:nowrap}
+
+  /* ---------------- tarjeta de partido ---------------- */
+  .game{background:var(--card);border:1px solid var(--line);border-radius:12px;
+        margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow)}
+  .ghead{display:flex;justify-content:space-between;align-items:center;gap:10px;
+         padding:9px 16px;background:var(--soft);border-bottom:1px solid var(--line2);
+         font-size:12.5px;color:var(--dim)}
+  .badge{font-size:10.5px;padding:3px 9px;border-radius:20px;font-weight:700;
+         letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+  .b-ok{background:var(--homebg);color:var(--home);border:1px solid #bfe3d0}
+  .b-warn{background:var(--warnbg);color:var(--warn);border:1px solid var(--warnline)}
+  .b-fin{background:#eef1f4;color:var(--dim);border:1px solid var(--line)}
+
+  .gbody{padding:16px}
+  .matchup{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center}
+  .side{display:flex;align-items:center;gap:11px;min-width:0}
+  .side.h{flex-direction:row-reverse;text-align:right}
+  .logo{width:46px;height:46px;flex:0 0 46px;object-fit:contain}
+  .tinfo{min-width:0}
+  .tname{font-size:16px;font-weight:700;letter-spacing:-.01em;
+         white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .trec{color:var(--dim);font-size:12.5px;margin-top:1px}
+  .vs{color:var(--dim2);font-size:12px;font-weight:700;letter-spacing:.08em}
+
+  .probs{display:flex;justify-content:space-between;margin:16px 0 5px;
+         font-variant-numeric:tabular-nums}
+  .probs .pv{font-size:23px;font-weight:800;letter-spacing:-.02em}
+  .probs .pl{font-size:11px;color:var(--dim2);text-transform:uppercase;
+             letter-spacing:.05em;font-weight:600}
+  .probs .r{text-align:right}
+  .pa{color:var(--away)} .ph{color:var(--home)}
+
+  .bar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--line2)}
+  .bar i{display:block}
+  .bar .a{background:var(--away)}
+  .bar .h{background:var(--home)}
+
+  .verdict{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+           margin-top:14px;padding:11px 13px;border-radius:9px;
+           background:var(--soft);border:1px solid var(--line2);font-size:14px}
+  .verdict .tag{font-size:10.5px;font-weight:700;text-transform:uppercase;
+                letter-spacing:.05em;color:var(--dim2)}
+  .verdict .w{font-weight:700}
+  .verdict .cmp{margin-left:auto;font-size:12px;color:var(--dim)}
+
+  .result{display:flex;justify-content:space-between;align-items:center;gap:10px;
+          margin-top:11px;padding:10px 13px;border-radius:9px;font-size:14px;
+          background:var(--soft);border:1px solid var(--line2)}
+  .ok{color:var(--home);font-weight:700}
+  .no{color:var(--miss);font-weight:700}
+
+  .pitchers{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  .p{background:var(--soft);border:1px solid var(--line2);border-radius:9px;padding:11px 13px}
+  .p.h{text-align:right}
+  .plabel{font-size:10px;text-transform:uppercase;letter-spacing:.06em;
+          color:var(--dim2);font-weight:700}
+  .pname{font-weight:700;font-size:14.5px;margin:3px 0 5px;
+         white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pstats{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums;line-height:1.6}
+  .pstats b{color:var(--txt);font-weight:700}
+  .unk{color:var(--warn);font-style:italic}
+
+  .more{background:var(--card);border:1px solid var(--line);color:var(--dim);
+        cursor:pointer;font-size:12.5px;font-weight:600;font-family:inherit;
+        padding:9px;margin-top:14px;width:100%;border-radius:8px}
+  .more:hover{color:var(--txt);border-color:#cdd4db;background:var(--soft)}
+  .detail{display:none;margin-top:14px;border-top:1px solid var(--line2);padding-top:16px}
+  .detail.on{display:block}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+
+  h4{margin:0 0 9px;font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:8px}
+  h4 img{width:22px;height:22px;object-fit:contain}
+  h5{margin:14px 0 6px;font-size:10.5px;color:var(--dim2);font-weight:700;
+     text-transform:uppercase;letter-spacing:.06em}
+  .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));
+      gap:7px;margin-bottom:12px}
+  .kv div{background:var(--soft);border:1px solid var(--line2);border-radius:7px;
+          padding:6px 8px}
+  .kv .kk{font-size:9.5px;color:var(--dim2);text-transform:uppercase;
+          letter-spacing:.05em;font-weight:700}
+  .kv .vv{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;
+        font-variant-numeric:tabular-nums}
+  th{text-align:left;color:var(--dim2);font-weight:700;font-size:10px;
+     text-transform:uppercase;letter-spacing:.05em;padding:6px 7px;
+     border-bottom:1px solid var(--line)}
+  td{padding:6px 7px;border-bottom:1px solid var(--line2)}
+  td.n,th.n{text-align:right}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--soft)}
+  .pos{color:var(--dim2);font-size:11px;font-weight:600}
+
+  #tabla .wrapt{background:var(--card);border:1px solid var(--line);
+                border-radius:11px;padding:6px 14px 10px;box-shadow:var(--shadow)}
+  #tabla table{font-size:13px}
+  #tabla td:nth-child(2){font-weight:700}
+  #tabla .lg{width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:7px}
+  .scroll{overflow-x:auto}
+
+  .hide{display:none}
+  .empty{color:var(--dim);padding:36px;text-align:center;background:var(--card);
+         border:1px solid var(--line);border-radius:11px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--dim);
+          margin-top:10px}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+  @media(max-width:680px){
+    .pitchers,.cols{grid-template-columns:1fr}
+    .p.h,.side.h{text-align:left}
+    .side.h{flex-direction:row}
+    .matchup{grid-template-columns:1fr}
+    .vs{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Predicciones MLB <span id="season"></span></h1>
+    <div class="sub" id="meta"></div>
+  </header>
+
+  <div class="cards" id="cards"></div>
+  <div class="info" id="como"></div>
+  <div class="info warnbox" id="note"></div>
+
+  <div class="tabs">
+    <button class="tab on" data-v="pred">Predicciones por fecha</button>
+    <button class="tab" data-v="tabla">Tabla de equipos</button>
+    <button class="tab" data-v="conf">Solo abridores confirmados</button>
+  </div>
+
+  <div id="pred"></div>
+  <div id="tabla" class="hide"></div>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio",
+               "agosto","septiembre","octubre","noviembre","diciembre"];
+const DIAS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+
+const logo = id => `https://www.mlbstatic.com/team-logos/${id}.svg`;
+
+// El modelo trabaja en precisión completa; aquí solo se formatea para mostrar.
+const pc = n => Number(n).toFixed(2);   // porcentajes: 53.40
+const n4 = n => Number(n).toFixed(4);   // logloss / brier
+
+function fechaLarga(iso){
+  const [y,m,d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m-1, d));
+  return `${DIAS[dt.getUTCDay()]} ${d} de ${MESES[m-1]}`;
+}
+function hora(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  if(isNaN(d)) return "";
+  return d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+}
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+let soloConfirmados = false;
+
+function pitcherHTML(p, lado){
+  const label = lado === "h" ? "Abridor local" : "Abridor visitante";
+  if(!p.known){
+    return `<div class="p ${lado}">
+      <div class="plabel">${label}</div>
+      <div class="pname unk">${esc(p.name)}</div>
+      <div class="pstats">Todavía no anunciado: el modelo usa el promedio de la liga</div>
+    </div>`;
+  }
+  return `<div class="p ${lado}">
+    <div class="plabel">${label}</div>
+    <div class="pname">${esc(p.name)}</div>
+    <div class="pstats">
+      Efectividad <b>${esc(p.era)}</b> &middot; Récord <b>${p.wins}-${p.losses}</b> &middot;
+      WHIP <b>${esc(p.whip)}</b><br>
+      ${esc(p.innings)} entradas &middot; ${p.strikeouts} ponches &middot;
+      ${p.walks} bases &middot; ${p.starts} aperturas
+    </div>
+  </div>`;
+}
+
+function bateadoresHTML(t){
+  if(!t.hitters.length) return "<div class='pstats'>Sin bateadores con 50 turnos o más.</div>";
+  const filas = t.hitters.map(h => `<tr>
+      <td>${esc(h.name)} <span class="pos">${esc(h.pos)}</span></td>
+      <td class="n"><b>${esc(h.avg)}</b></td>
+      <td class="n">${esc(h.obp)}</td>
+      <td class="n">${esc(h.ops)}</td>
+      <td class="n">${h.hr}</td>
+      <td class="n">${h.rbi}</td>
+    </tr>`).join("");
+  return `<h5>Bateadores (ordenados por promedio)</h5>
+    <table><thead><tr>
+      <th>Jugador</th><th class="n">AVG</th><th class="n">OBP</th>
+      <th class="n">OPS</th><th class="n">HR</th><th class="n">CI</th>
+    </tr></thead><tbody>${filas}</tbody></table>`;
+}
+
+function rotacionHTML(t){
+  if(!t.rotation.length) return "";
+  const filas = t.rotation.map(p => `<tr>
+      <td>${esc(p.name)}</td>
+      <td class="n"><b>${esc(p.era)}</b></td>
+      <td class="n">${p.wins}-${p.losses}</td>
+      <td class="n">${esc(p.whip)}</td>
+      <td class="n">${p.strikeouts}</td>
+      <td class="n">${p.starts}</td>
+    </tr>`).join("");
+  return `<h5>Rotación de abridores</h5>
+    <table><thead><tr>
+      <th>Lanzador</th><th class="n">ERA</th><th class="n">G-P</th>
+      <th class="n">WHIP</th><th class="n">K</th><th class="n">Ap.</th>
+    </tr></thead><tbody>${filas}</tbody></table>`;
+}
+
+function equipoDetalle(t, titulo){
+  const kv = [
+    ["AVG", t.batAvg, "promedio de bateo"],
+    ["OBP", t.obp], ["SLG", t.slg], ["OPS", t.ops],
+    ["Carreras", t.runs], ["HR", t.homeRuns],
+    ["ERA", t.era], ["WHIP", t.whip],
+    ["CF/j", t.rsPg], ["CC/j", t.raPg],
+    ["Últ. 10", pc(t.form10) + "%"],
+  ].map(([k,v]) => `<div><div class="kk">${k}</div><div class="vv">${esc(v)}</div></div>`).join("");
+
+  return `<div>
+    <h4><img src="${logo(t.id)}" alt=""> ${titulo}: ${esc(t.name)}</h4>
+    <div class="kv">${kv}</div>
+    ${bateadoresHTML(t)}
+    ${rotacionHTML(t)}
+  </div>`;
+}
+
+function juegoHTML(g, idx){
+  const localGana = g.pHome >= 50;
+  const ganador = localGana ? g.home : g.away;
+  const prob = localGana ? g.pHome : g.pAway;
+
+  const badge = g.final
+    ? '<span class="badge b-fin">Ya jugado</span>'
+    : g.confirmed
+      ? '<span class="badge b-ok">Abridores confirmados</span>'
+      : '<span class="badge b-warn">Abridores sin confirmar</span>';
+
+  let resultado = "";
+  if(g.final && g.homeScore !== null && g.awayScore !== null){
+    const marca = g.hit === true ? '<span class="ok">✓ el pronóstico acertó</span>'
+                : g.hit === false ? '<span class="no">✗ el pronóstico falló</span>'
+                : '<span>empate</span>';
+    resultado = `<div class="result">
+      <span>Resultado final: <b>${esc(g.away.abbrev || g.away.name)} ${g.awayScore}
+        &ndash; ${g.homeScore} ${esc(g.home.abbrev || g.home.name)}</b></span>
+      ${marca}
+    </div>`;
+  }
+
+  return `<div class="game" data-conf="${g.confirmed}">
+    <div class="ghead">
+      <span>${hora(g.start)} &middot; ${esc(g.venue)} &middot; ${esc(g.status)}</span>
+      ${badge}
+    </div>
+    <div class="gbody">
+      <div class="matchup">
+        <div class="side">
+          <img class="logo" src="${logo(g.away.id)}" alt="">
+          <div class="tinfo">
+            <div class="tname">${esc(g.away.name)}</div>
+            <div class="trec">Visitante &middot; ${g.away.wins}-${g.away.losses}
+              &middot; Elo ${g.away.elo}</div>
+          </div>
+        </div>
+        <div class="vs">EN</div>
+        <div class="side h">
+          <img class="logo" src="${logo(g.home.id)}" alt="">
+          <div class="tinfo">
+            <div class="tname">${esc(g.home.name)}</div>
+            <div class="trec">Local &middot; ${g.home.wins}-${g.home.losses}
+              &middot; Elo ${g.home.elo}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="probs">
+        <div><div class="pv pa">${pc(g.pAway)}%</div>
+          <div class="pl">gana ${esc(g.away.abbrev || g.away.name)}</div></div>
+        <div class="r"><div class="pv ph">${pc(g.pHome)}%</div>
+          <div class="pl">gana ${esc(g.home.abbrev || g.home.name)}</div></div>
+      </div>
+      <div class="bar">
+        <i class="a" style="width:${pc(g.pAway)}%"></i>
+        <i class="h" style="width:${pc(g.pHome)}%"></i>
+      </div>
+
+      <div class="verdict">
+        <span class="tag">Ganador pronosticado</span>
+        <span class="w" style="color:${localGana ? "var(--home)" : "var(--away)"}">
+          ${esc(ganador.name)} &middot; ${pc(prob)}%</span>
+        <span class="cmp">el modelo Elo daría ${pc(g.eloHome)}% al local</span>
+      </div>
+
+      ${resultado}
+
+      <div class="pitchers">
+        ${pitcherHTML(g.awayPitcher,"a")}
+        ${pitcherHTML(g.homePitcher,"h")}
+      </div>
+
+      <button class="more" data-i="${idx}">Ver jugadores y estadísticas completas de ambos equipos</button>
+      <div class="detail" id="d${idx}">
+        <div class="cols">
+          ${equipoDetalle(g.away,"Visitante")}
+          ${equipoDetalle(g.home,"Local")}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function render(){
+  if(!DATA){
+    document.getElementById("pred").innerHTML =
+      "<div class='empty'>Sin datos. Ejecuta <code>Red_neuronal ui</code>.</div>";
+    return;
+  }
+
+  document.getElementById("season").textContent = DATA.temporada;
+  document.getElementById("meta").textContent =
+    `Generado el ${DATA.generado} · red neuronal entrenada con `+
+    `${DATA.modelo.partidosEntrenamiento.toLocaleString("es")} partidos reales `+
+    `y ${DATA.modelo.caracteristicas} características por partido`;
+
+  const r = DATA.modelo.reciente;
+  const cards = [
+    ["Partidos", DATA.resumen.partidos, `repartidos en ${DATA.resumen.dias} fechas`],
+    ["Confirmados", DATA.resumen.confirmados, "con abridor ya anunciado"],
+    ["Sin confirmar", DATA.resumen.sinConfirmar, "abridor por anunciar"],
+  ];
+  if(r){
+    cards.push(["Acierto reciente", pc(r.aciertoRed) + "%",
+                `medido sobre los ${r.partidos} partidos desde el ${r.desde}`]);
+    cards.push(["Referencia Elo", pc(r.aciertoElo) + "%", "mismo periodo, modelo simple"]);
+    cards.push(["Log loss", n4(r.logloss), "calidad de la probabilidad, menos es mejor"]);
+  }
+  document.getElementById("cards").innerHTML = cards.map(([k,v,d]) =>
+    `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>
+     <div class="d">${d}</div></div>`).join("");
+
+  document.getElementById("como").innerHTML = `
+    <h3>Cómo se calcula cada porcentaje</h3>
+    <p>Una red neuronal entrenada con <b>${DATA.modelo.partidosEntrenamiento.toLocaleString("es")}
+    partidos reales</b> de temporadas anteriores y de la actual. Para cada partido mira
+    <b>25 datos previos</b> de ambos equipos: fuerza Elo, récord, carreras anotadas y
+    permitidas por juego, forma de los últimos 10, expectativa pitagórica, días de descanso
+    y el rendimiento reciente del abridor.</p>
+    <p>Nunca usa información del propio partido, así que el porcentaje es lo que el modelo
+    habría dicho <b>antes de que se jugara</b>. En béisbol un acierto del 55-58 % ya es bueno:
+    las casas de apuestas rondan el 57 %.</p>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--away)"></i> probabilidad del visitante</span>
+      <span><i class="dot" style="background:var(--home)"></i> probabilidad del local</span>
+      <span><i class="dot" style="background:var(--home);opacity:.35"></i> Elo = modelo de referencia simple</span>
+    </div>`;
+
+  document.getElementById("note").innerHTML = `
+    <h3>Ojo con las fechas: no todas están confirmadas</h3>
+    <p>Los equipos anuncian su lanzador abridor con pocos días de antelación. De los
+    ${DATA.resumen.partidos} partidos mostrados, solo <b>${DATA.resumen.confirmados}</b>
+    tienen <b>ambos abridores confirmados</b>; en los <b>${DATA.resumen.sinConfirmar}</b>
+    restantes el modelo sustituye al lanzador por el promedio de la liga, así que esas
+    probabilidades son bastante menos fiables.</p>
+    <p>Además, los números se calculan con el estado de los equipos <b>a día de hoy</b>:
+    no simulan los partidos intermedios. Cuanto más lejana la fecha, más provisional el
+    pronóstico. Usa el botón <b>«Solo abridores confirmados»</b> para quedarte con lo firme.</p>`;
+
+  const cont = document.getElementById("pred");
+  cont.innerHTML = DATA.fechas.map(d => {
+    const juegos = soloConfirmados ? d.games.filter(g => g.confirmed) : d.games;
+    if(!juegos.length) return "";
+    const conf = juegos.filter(g => g.confirmed).length;
+    const cuerpo = juegos.map((g,i) => juegoHTML(g, d.date+"_"+i)).join("");
+    return `<div class="daybar"><h2>${fechaLarga(d.date)}</h2><div class="rule"></div>
+      <span class="cnt">${juegos.length} partidos &middot; ${conf} con abridor confirmado</span>
+      </div>${cuerpo}`;
+  }).join("") || "<div class='empty'>No hay partidos que mostrar con este filtro.</div>";
+
+  const filas = DATA.tabla.map((t,i) => `<tr>
+      <td class="n pos">${i+1}</td>
+      <td><img class="lg" src="${logo(t.id)}" alt="">${esc(t.name)}</td>
+      <td class="n">${t.wins}-${t.losses}</td>
+      <td class="n"><b>${t.elo}</b></td>
+      <td class="n">${esc(t.batAvg)}</td>
+      <td class="n">${esc(t.ops)}</td>
+      <td class="n">${esc(t.era)}</td>
+      <td class="n">${t.rsPg}</td>
+      <td class="n">${t.raPg}</td>
+      <td class="n">${pc(t.form10)}%</td>
+    </tr>`).join("");
+  document.getElementById("tabla").innerHTML = `<div class="wrapt"><div class="scroll">
+    <table><thead><tr>
+      <th class="n">#</th><th>Equipo</th><th class="n">Récord</th><th class="n">Elo</th>
+      <th class="n">AVG</th><th class="n">OPS</th><th class="n">ERA</th>
+      <th class="n">CF/j</th><th class="n">CC/j</th><th class="n">Últ. 10</th>
+    </tr></thead><tbody>${filas}</tbody></table></div>
+    <div class="legend" style="padding:10px 2px 4px">
+      <span>Elo = fuerza estimada del equipo</span>
+      <span>CF/j = carreras a favor por juego</span>
+      <span>CC/j = carreras en contra por juego</span>
+      <span>Últ. 10 = victorias en los últimos 10 partidos</span>
+    </div></div>`;
+}
+
+document.addEventListener("click", e => {
+  const more = e.target.closest(".more");
+  if(more){
+    const box = document.getElementById("d"+more.dataset.i);
+    box.classList.toggle("on");
+    more.textContent = box.classList.contains("on")
+      ? "Ocultar detalle"
+      : "Ver jugadores y estadísticas completas de ambos equipos";
+    return;
+  }
+  const tab = e.target.closest(".tab");
+  if(!tab) return;
+  const v = tab.dataset.v;
+  if(v === "conf"){
+    soloConfirmados = !soloConfirmados;
+    tab.classList.toggle("on", soloConfirmados);
+    tab.textContent = soloConfirmados
+      ? "Mostrando solo confirmados"
+      : "Solo abridores confirmados";
+    render();
+    return;
+  }
+  document.querySelectorAll(".tab").forEach(t => {
+    if(t.dataset.v !== "conf") t.classList.toggle("on", t === tab);
+  });
+  document.getElementById("pred").classList.toggle("hide", v !== "pred");
+  document.getElementById("tabla").classList.toggle("hide", v !== "tabla");
+});
+
+render();
+</script>
+</body>
+</html>

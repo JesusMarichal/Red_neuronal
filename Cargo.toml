@@ -1,0 +1,12 @@
+[package]
+name = "Red_neuronal"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+burn = { version = "0.21.0", features = ["ndarray", "train"] }
+chrono = "0.4.45"
+csv = "1.4.0"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+ureq = "3.4.1"

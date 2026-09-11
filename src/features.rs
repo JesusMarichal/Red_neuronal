@@ -9,12 +9,14 @@ use std::collections::{HashMap, VecDeque};
 use chrono::NaiveDate;
 use crate::mlb::RawGame;
 
-pub const FEATURE_NAMES: [&str; 25] = [
+pub const FEATURE_NAMES: [&str; 29] = [
     "elo_diff",        "elo_prob",       "home_wpct",      "away_wpct",     "wpct_diff",
     "home_rs_pg",      "home_ra_pg",     "away_rs_pg",     "away_ra_pg",    "home_rundiff_pg",
     "away_rundiff_pg", "home_form10",    "away_form10",    "home_rs10",     "home_ra10",
     "away_rs10",       "away_ra10",      "home_pyth",      "away_pyth",     "home_rest",
     "away_rest",       "home_sp_ra",     "away_sp_ra",     "home_sp_exp",   "away_sp_exp",
+    // Rendimiento partido en casa / fuera, acumulado de TODA la temporada.
+    "home_as_home_wpct", "away_as_away_wpct", "home_as_home_rd", "away_as_away_rd",
 ];
 pub const NUM_FEATURES: usize = FEATURE_NAMES.len();
 
@@ -55,6 +57,15 @@ struct TeamState {
     wins: usize,
     rs: f64,
     ra: f64,
+    // Desglose local / visitante, también acumulado de toda la temporada.
+    h_gp: usize,
+    h_wins: usize,
+    h_rs: f64,
+    h_ra: f64,
+    a_gp: usize,
+    a_wins: usize,
+    a_rs: f64,
+    a_ra: f64,
     last_results: VecDeque<f32>,
     last_rs: VecDeque<f32>,
     last_ra: VecDeque<f32>,
@@ -71,6 +82,14 @@ impl TeamState {
             wins: 0,
             rs: 0.0,
             ra: 0.0,
+            h_gp: 0,
+            h_wins: 0,
+            h_rs: 0.0,
+            h_ra: 0.0,
+            a_gp: 0,
+            a_wins: 0,
+            a_rs: 0.0,
+            a_ra: 0.0,
             last_results: VecDeque::new(),
             last_rs: VecDeque::new(),
             last_ra: VecDeque::new(),
@@ -89,6 +108,14 @@ impl TeamState {
             self.wins = 0;
             self.rs = 0.0;
             self.ra = 0.0;
+            self.h_gp = 0;
+            self.h_wins = 0;
+            self.h_rs = 0.0;
+            self.h_ra = 0.0;
+            self.a_gp = 0;
+            self.a_wins = 0;
+            self.a_rs = 0.0;
+            self.a_ra = 0.0;
             self.last_results.clear();
             self.last_rs.clear();
             self.last_ra.clear();
@@ -104,6 +131,22 @@ impl TeamState {
     }
     fn ra_pg(&self) -> f64 {
         if self.gp == 0 { 4.4 } else { self.ra / self.gp as f64 }
+    }
+    /// Porcentaje jugando en casa, sobre toda la temporada.
+    fn home_wpct(&self) -> f64 {
+        (self.h_wins as f64 + 6.0 * 0.5) / (self.h_gp as f64 + 6.0)
+    }
+    /// Porcentaje jugando fuera, sobre toda la temporada.
+    fn away_wpct(&self) -> f64 {
+        (self.a_wins as f64 + 6.0 * 0.5) / (self.a_gp as f64 + 6.0)
+    }
+    /// Diferencia de carreras por juego en casa.
+    fn home_rd(&self) -> f64 {
+        if self.h_gp == 0 { 0.0 } else { (self.h_rs - self.h_ra) / self.h_gp as f64 }
+    }
+    /// Diferencia de carreras por juego como visitante.
+    fn away_rd(&self) -> f64 {
+        if self.a_gp == 0 { 0.0 } else { (self.a_rs - self.a_ra) / self.a_gp as f64 }
     }
     fn pyth(&self) -> f64 {
         if self.gp == 0 { return 0.5; }
@@ -121,11 +164,22 @@ impl TeamState {
         }
     }
 
-    fn update(&mut self, date: NaiveDate, won: bool, scored: i32, allowed: i32) {
+    fn update(&mut self, date: NaiveDate, won: bool, scored: i32, allowed: i32, en_casa: bool) {
         self.gp += 1;
         if won { self.wins += 1; }
         self.rs += scored as f64;
         self.ra += allowed as f64;
+        if en_casa {
+            self.h_gp += 1;
+            if won { self.h_wins += 1; }
+            self.h_rs += scored as f64;
+            self.h_ra += allowed as f64;
+        } else {
+            self.a_gp += 1;
+            if won { self.a_wins += 1; }
+            self.a_rs += scored as f64;
+            self.a_ra += allowed as f64;
+        }
         push_capped(&mut self.last_results, if won { 1.0 } else { 0.0 }, 10);
         push_capped(&mut self.last_rs, scored as f32, 10);
         push_capped(&mut self.last_ra, allowed as f32, 10);
@@ -188,6 +242,12 @@ fn feature_vector(
         ap.ra() as f32,
         (hp.starts.min(30) as f32) / 30.0,
         (ap.starts.min(30) as f32) / 30.0,
+        // El local se juzga por cómo rinde EN CASA y el visitante por cómo
+        // rinde FUERA: no es lo mismo un equipo de 50-25 en casa que fuera.
+        h.home_wpct() as f32,
+        a.away_wpct() as f32,
+        h.home_rd() as f32,
+        a.away_rd() as f32,
     ];
     debug_assert_eq!(feats.len(), NUM_FEATURES);
     feats
@@ -204,6 +264,11 @@ pub struct TeamSnapshot {
     pub rs_pg: f64,
     pub ra_pg: f64,
     pub form10: f64,
+    // Récord separado por condición, de toda la temporada.
+    pub home_wins: usize,
+    pub home_losses: usize,
+    pub away_wins: usize,
+    pub away_losses: usize,
 }
 
 pub struct FeatureBuilder {
@@ -278,9 +343,9 @@ impl FeatureBuilder {
             self.teams.get_mut(&g.away_id).unwrap().elo -= delta;
 
             self.teams.get_mut(&g.home_id).unwrap()
-                .update(date, home_won, g.home_score, g.away_score);
+                .update(date, home_won, g.home_score, g.away_score, true);
             self.teams.get_mut(&g.away_id).unwrap()
-                .update(date, !home_won, g.away_score, g.home_score);
+                .update(date, !home_won, g.away_score, g.home_score, false);
 
             let hps = self.pitchers.get_mut(&g.home_sp_id).unwrap();
             hps.starts += 1;
@@ -338,6 +403,10 @@ impl FeatureBuilder {
                         rs_pg: t.rs_pg(),
                         ra_pg: t.ra_pg(),
                         form10: TeamState::mean(&t.last_results, 0.5),
+                        home_wins: t.h_wins,
+                        home_losses: t.h_gp - t.h_wins,
+                        away_wins: t.a_wins,
+                        away_losses: t.a_gp - t.a_wins,
                     },
                 )
             })

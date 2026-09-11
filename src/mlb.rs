@@ -216,10 +216,12 @@ pub struct ScheduledGame {
     pub status: String,
     /// Ambos abridores anunciados por los equipos.
     pub pitchers_confirmed: bool,
-    /// Marcador real, si el partido ya terminó.
+    /// Marcador real, si el partido ya empezó.
     pub home_score: Option<i32>,
     pub away_score: Option<i32>,
     pub is_final: bool,
+    /// En juego ahora mismo.
+    pub is_live: bool,
 }
 
 fn pitcher_name(side: &Value) -> String {
@@ -265,6 +267,7 @@ pub fn fetch_scheduled(from: &str, days: i64) -> Result<Vec<ScheduledGame>, Stri
                 .and_then(|v| v.as_str())
                 .unwrap_or("S");
             let is_final = state == "F" || state == "O";
+            let is_live = state == "I" || state == "M" || state == "P";
             out.push(ScheduledGame {
                 game_pk: g.get("gamePk").and_then(|v| v.as_i64()).unwrap_or(0),
                 date: g.get("officialDate").and_then(|v| v.as_str()).unwrap_or("").to_string(),
@@ -287,6 +290,7 @@ pub fn fetch_scheduled(from: &str, days: i64) -> Result<Vec<ScheduledGame>, Stri
                 home_score: home.get("score").and_then(|v| v.as_i64()).map(|v| v as i32),
                 away_score: away.get("score").and_then(|v| v.as_i64()).map(|v| v as i32),
                 is_final,
+                is_live,
             });
         }
     }

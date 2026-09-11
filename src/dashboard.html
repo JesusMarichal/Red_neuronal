@@ -8,10 +8,9 @@
   :root{
     --bg:#f4f6f8; --card:#ffffff; --soft:#f8fafb; --line:#e2e6ea; --line2:#eef1f4;
     --txt:#111a21; --dim:#5c6b78; --dim2:#8a97a3;
-    --away:#1355c4; --awaybg:#e8f0fe;
-    --home:#12734a; --homebg:#e6f5ed;
+    --away:#1355c4; --home:#12734a; --homebg:#e6f5ed;
     --warn:#9a5b00; --warnbg:#fff6e5; --warnline:#f0d9a8;
-    --miss:#b3261e;
+    --miss:#b3261e; --livec:#c0392b;
     --shadow:0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06);
   }
   *{box-sizing:border-box}
@@ -20,12 +19,15 @@
        font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
   .wrap{max-width:1120px;margin:0 auto;padding:26px 18px 72px}
 
-  /* ---------------- cabecera ---------------- */
-  header{margin-bottom:20px}
+  header{margin-bottom:18px}
   h1{margin:0;font-size:27px;letter-spacing:-.02em;font-weight:700}
   .sub{color:var(--dim);font-size:13.5px;margin-top:5px}
+  .pulse{display:inline-block;width:7px;height:7px;border-radius:50%;
+         background:var(--home);margin-right:5px;vertical-align:1px}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+  .pulse.on{background:var(--livec);animation:blink 1.4s infinite}
 
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px;margin:20px 0}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:18px 0}
   .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;
         padding:13px 15px;box-shadow:var(--shadow)}
   .stat .k{color:var(--dim);font-size:11px;text-transform:uppercase;
@@ -43,24 +45,124 @@
   .warnbox h3,.warnbox b{color:#7a4a00}
   .warnbox p{color:#8a5a10}
 
-  /* ---------------- pestañas ---------------- */
-  .tabs{display:flex;gap:8px;margin:22px 0 16px;flex-wrap:wrap}
+  .hrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .openside{margin-left:auto;background:var(--card);border:1px solid var(--line);
+            color:var(--dim);border-radius:8px;padding:9px 15px;cursor:pointer;
+            font-family:inherit;font-size:13px;font-weight:600;box-shadow:var(--shadow)}
+  .openside:hover{color:var(--txt);border-color:#cdd4db}
+  .openside::before{content:"";display:inline-block;width:7px;height:7px;
+                    border-radius:2px;background:var(--home);margin-right:7px;
+                    vertical-align:1px}
+
+  /* ---------- panel lateral ---------- */
+  .backdrop{position:fixed;inset:0;background:rgba(17,26,33,.34);z-index:40;
+            opacity:0;visibility:hidden;transition:opacity .22s}
+  .backdrop.on{opacity:1;visibility:visible}
+  .side{position:fixed;top:0;right:0;bottom:0;width:min(430px,92vw);z-index:41;
+        background:var(--card);border-left:1px solid var(--line);
+        box-shadow:-8px 0 26px rgba(16,24,40,.10);
+        transform:translateX(102%);transition:transform .26s ease;
+        display:flex;flex-direction:column}
+  .side.on{transform:translateX(0)}
+  .sidehead{display:flex;align-items:center;gap:12px;padding:16px 18px;
+            border-bottom:1px solid var(--line);background:var(--soft)}
+  .sidehead h2{margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em}
+  .closeside{margin-left:auto;background:none;border:1px solid var(--line);
+             color:var(--dim);border-radius:7px;width:30px;height:30px;
+             cursor:pointer;font-size:19px;line-height:1;font-family:inherit}
+  .closeside:hover{color:var(--txt);border-color:#cdd4db;background:var(--card)}
+  .sidebody{overflow-y:auto;padding:16px 18px 40px}
+  .sidebody .info{box-shadow:none;margin:0 0 14px}
+  .sidebody h3{font-size:13.5px}
+  .sidebody table{margin-top:6px}
+  .feats{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 0}
+  .feats code{background:var(--soft);border:1px solid var(--line2);border-radius:5px;
+              padding:2px 7px;font-size:11px;color:var(--dim);
+              font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  .tabs{display:flex;gap:8px;margin:20px 0 14px;flex-wrap:wrap}
   .tab{background:var(--card);border:1px solid var(--line);color:var(--dim);
        padding:9px 16px;border-radius:8px;cursor:pointer;font-size:13.5px;
        font-weight:600;font-family:inherit;box-shadow:var(--shadow)}
   .tab:hover{color:var(--txt);border-color:#cdd4db}
   .tab.on{background:var(--txt);color:#fff;border-color:var(--txt)}
 
-  /* ---------------- separador de día ---------------- */
-  .daybar{display:flex;align-items:baseline;gap:12px;margin:28px 0 12px}
-  .daybar h2{margin:0;font-size:17px;font-weight:700;text-transform:capitalize;
-             letter-spacing:-.01em}
-  .daybar .rule{flex:1;height:1px;background:var(--line)}
-  .daybar .cnt{color:var(--dim2);font-size:12.5px;white-space:nowrap}
 
-  /* ---------------- tarjeta de partido ---------------- */
+  /* ---------- fondo de béisbol ----------
+     Va en una capa fija por detrás de todo (z-index:-1) y con un velo blanco
+     encima, así que decora sin restar legibilidad. Las tarjetas son blancas
+     opacas, de modo que nada importante queda tapado. */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='100' r='95' fill='none' stroke='%23b9c6d1' stroke-width='2.5'/%3E%3Cpath d='M48 20 C76 62 76 138 48 180' fill='none' stroke='%23d98f8f' stroke-width='3'/%3E%3Cpath d='M152 20 C124 62 124 138 152 180' fill='none' stroke='%23d98f8f' stroke-width='3'/%3E%3Cg stroke='%23d98f8f' stroke-width='2.4' stroke-linecap='round' fill='none'%3E%3Cpath d='M57 34 l9 -5 M57 39 l9 -5 M63 51 l9 -5 M63 56 l9 -5 M69 67 l9 -5 M69 72 l9 -5 M76 84 l9 -5 M76 89 l9 -5 M82 100 l9 -5 M82 105 l9 -5 M76 116 l9 -5 M76 121 l9 -5 M69 133 l9 -5 M69 138 l9 -5 M63 149 l9 -5 M63 154 l9 -5 M57 166 l9 -5 M57 171 l9 -5'/%3E%3Cpath d='M143 34 l-9 -5 M143 39 l-9 -5 M137 51 l-9 -5 M137 56 l-9 -5 M131 67 l-9 -5 M131 72 l-9 -5 M124 84 l-9 -5 M124 89 l-9 -5 M118 100 l-9 -5 M118 105 l-9 -5 M124 116 l-9 -5 M124 121 l-9 -5 M131 133 l-9 -5 M131 138 l-9 -5 M137 149 l-9 -5 M137 154 l-9 -5 M143 166 l-9 -5 M143 171 l-9 -5'/%3E%3C/g%3E%3C/svg%3E") no-repeat right -110px top -90px / 520px 520px,
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='100' r='95' fill='none' stroke='%23b9c6d1' stroke-width='2.5'/%3E%3Cpath d='M48 20 C76 62 76 138 48 180' fill='none' stroke='%23d98f8f' stroke-width='3'/%3E%3Cpath d='M152 20 C124 62 124 138 152 180' fill='none' stroke='%23d98f8f' stroke-width='3'/%3E%3Cg stroke='%23d98f8f' stroke-width='2.4' stroke-linecap='round' fill='none'%3E%3Cpath d='M57 34 l9 -5 M57 39 l9 -5 M63 51 l9 -5 M63 56 l9 -5 M69 67 l9 -5 M69 72 l9 -5 M76 84 l9 -5 M76 89 l9 -5 M82 100 l9 -5 M82 105 l9 -5 M76 116 l9 -5 M76 121 l9 -5 M69 133 l9 -5 M69 138 l9 -5 M63 149 l9 -5 M63 154 l9 -5 M57 166 l9 -5 M57 171 l9 -5'/%3E%3Cpath d='M143 34 l-9 -5 M143 39 l-9 -5 M137 51 l-9 -5 M137 56 l-9 -5 M131 67 l-9 -5 M131 72 l-9 -5 M124 84 l-9 -5 M124 89 l-9 -5 M118 100 l-9 -5 M118 105 l-9 -5 M124 116 l-9 -5 M124 121 l-9 -5 M131 133 l-9 -5 M131 138 l-9 -5 M137 149 l-9 -5 M137 154 l-9 -5 M143 166 l-9 -5 M143 171 l-9 -5'/%3E%3C/g%3E%3C/svg%3E") no-repeat left -140px bottom -120px / 420px 420px,
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'%3E%3Cpath d='M150 20 L280 150 L150 280 L20 150 Z' fill='none' stroke='%23a9bfa9' stroke-width='3'/%3E%3Cpath d='M150 92 L208 150 L150 208 L92 150 Z' fill='none' stroke='%23a9bfa9' stroke-width='2'/%3E%3Ccircle cx='150' cy='150' r='13' fill='none' stroke='%23a9bfa9' stroke-width='2'/%3E%3C/svg%3E") no-repeat center 42% / 760px 760px,
+      repeating-linear-gradient(115deg,
+        rgba(120,160,120,.05) 0 46px, rgba(255,255,255,0) 46px 92px),
+      var(--bg);
+    opacity:.55;
+  }
+  /* Velo que garantiza el contraste del texto sobre el dibujo. */
+  body::after{
+    content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:linear-gradient(180deg,
+      rgba(244,246,248,.62) 0%, rgba(244,246,248,.80) 45%, rgba(244,246,248,.92) 100%);
+  }
+  header{position:relative}
+  header::after{
+    content:"";display:block;height:3px;width:74px;margin-top:12px;border-radius:2px;
+    background:linear-gradient(90deg,var(--livec),#e8a0a0 60%,transparent);
+  }
+
+  /* ---------- selección del día ---------- */
+  .sel{background:var(--card);border:1px solid var(--line);border-radius:12px;
+       padding:16px 18px;margin-bottom:16px;box-shadow:var(--shadow)}
+  .selhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .selhead h3{margin:0;font-size:15.5px;font-weight:700;letter-spacing:-.01em}
+  .uths{margin-left:auto;font-size:12px;color:var(--dim);display:flex;
+        align-items:center;gap:5px}
+  .uth{background:var(--soft);border:1px solid var(--line);color:var(--dim);
+       border-radius:7px;padding:5px 10px;cursor:pointer;font-family:inherit;
+       font-size:12px;font-weight:700}
+  .uth:hover{color:var(--txt);border-color:#cdd4db}
+  .uth.on{background:var(--txt);color:#fff;border-color:var(--txt)}
+  .selcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
+            gap:10px;margin-bottom:14px}
+  .selcards .stat{box-shadow:none;background:var(--soft)}
+  .selcards .v{font-size:22px}
+  .seltab{margin-bottom:10px}
+  .seltab .lg{width:20px;height:20px;object-fit:contain;vertical-align:middle;margin-right:7px}
+  .seltab .op{color:var(--dim);font-size:12px}
+  .seltab .ok,.seltab .no{font-weight:800}
+  .selp{margin:8px 0 0;font-size:12.5px;color:var(--dim);line-height:1.5}
+  .selp b{color:var(--txt)}
+
+  /* ------- selector de fecha ------- */
+  .days{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px;margin-bottom:8px}
+  .day{flex:0 0 auto;background:var(--card);border:1px solid var(--line);
+       border-radius:10px;padding:9px 14px;cursor:pointer;text-align:center;
+       font-family:inherit;box-shadow:var(--shadow);min-width:104px}
+  .day:hover{border-color:#cdd4db}
+  .day.on{background:var(--txt);border-color:var(--txt)}
+  .day .dd{font-size:13px;font-weight:700;color:var(--txt);text-transform:capitalize}
+  .day .dn{font-size:11px;color:var(--dim2);margin-top:2px}
+  .day.on .dd{color:#fff} .day.on .dn{color:#cfd8e0}
+  .day .lv{color:var(--livec);font-weight:700}
+  .day .lv i{display:inline-block;width:6px;height:6px;border-radius:50%;
+             background:currentColor;margin-right:4px;animation:blink 1.2s infinite}
+  .day.on .lv{color:#ffb4ab}
+
+  .dayhead{display:flex;align-items:baseline;gap:12px;margin:6px 0 14px}
+  .dayhead h2{margin:0;font-size:19px;font-weight:700;text-transform:capitalize;
+              letter-spacing:-.01em}
+  .dayhead .rule{flex:1;height:1px;background:var(--line)}
+  .dayhead .cnt{color:var(--dim2);font-size:12.5px;white-space:nowrap}
+
+  /* ------- tarjeta de partido ------- */
   .game{background:var(--card);border:1px solid var(--line);border-radius:12px;
         margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow)}
+  .game.live{border-color:#f0c4bf;animation:livepulse 2.2s ease-out infinite}
   .ghead{display:flex;justify-content:space-between;align-items:center;gap:10px;
          padding:9px 16px;background:var(--soft);border-bottom:1px solid var(--line2);
          font-size:12.5px;color:var(--dim)}
@@ -69,48 +171,87 @@
   .b-ok{background:var(--homebg);color:var(--home);border:1px solid #bfe3d0}
   .b-warn{background:var(--warnbg);color:var(--warn);border:1px solid var(--warnline)}
   .b-fin{background:#eef1f4;color:var(--dim);border:1px solid var(--line)}
+  .b-live{background:#fdecea;color:var(--livec);border:1px solid #f2c2bc}
+  .b-live .lp{display:inline-block;width:7px;height:7px;border-radius:50%;
+              background:var(--livec);margin-right:5px;animation:blink 1.2s infinite}
+  @keyframes livepulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.22)}
+    50%    {box-shadow:0 0 0 6px rgba(192,57,43,0)}
+  }
+  @keyframes flash{
+    0%  {background:#ffe08a;color:#5b3d00}
+    100%{background:transparent}
+  }
 
   .gbody{padding:16px}
-  .matchup{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center}
-  .side{display:flex;align-items:center;gap:11px;min-width:0}
-  .side.h{flex-direction:row-reverse;text-align:right}
+  .row{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;padding:7px 0}
+  .row + .row{border-top:1px solid var(--line2)}
+  .teamside{display:flex;align-items:center;gap:12px;min-width:0}
   .logo{width:46px;height:46px;flex:0 0 46px;object-fit:contain}
   .tinfo{min-width:0}
-  .tname{font-size:16px;font-weight:700;letter-spacing:-.01em;
+  .tname{font-size:16.5px;font-weight:700;letter-spacing:-.01em;
          white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .trec{color:var(--dim);font-size:12.5px;margin-top:1px}
-  .vs{color:var(--dim2);font-size:12px;font-weight:700;letter-spacing:.08em}
-
-  .probs{display:flex;justify-content:space-between;margin:16px 0 5px;
-         font-variant-numeric:tabular-nums}
-  .probs .pv{font-size:23px;font-weight:800;letter-spacing:-.02em}
-  .probs .pl{font-size:11px;color:var(--dim2);text-transform:uppercase;
-             letter-spacing:.05em;font-weight:600}
-  .probs .r{text-align:right}
+  .split{font-size:12.5px;margin-top:3px;color:var(--dim)}
+  .split b{color:var(--txt);font-weight:700;font-variant-numeric:tabular-nums}
+  .split .sp{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:20px;
+             background:var(--soft);border:1px solid var(--line);font-weight:700;
+             font-size:11.5px;color:var(--txt);font-variant-numeric:tabular-nums}
+  .score{font-size:34px;font-weight:800;letter-spacing:-.03em;
+         font-variant-numeric:tabular-nums;min-width:48px;text-align:right;color:var(--dim2)}
+  .score.win{color:var(--txt)}
+  .score.flash{animation:flash 3s ease-out;border-radius:6px;padding:0 6px;margin-right:-6px}
+  .scorewrap{text-align:right}
+  .pmini{font-size:10.5px;color:var(--dim2);font-weight:700;margin-top:-2px;
+         text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+  .pctcol{text-align:right;font-variant-numeric:tabular-nums}
+  .pctcol .pv{font-size:22px;font-weight:800;letter-spacing:-.02em}
+  .pctcol .pl{font-size:10px;color:var(--dim2);text-transform:uppercase;
+              letter-spacing:.05em;font-weight:700}
   .pa{color:var(--away)} .ph{color:var(--home)}
 
-  .bar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--line2)}
+  .bar{display:flex;height:10px;border-radius:5px;overflow:hidden;
+       background:var(--line2);margin-top:12px}
   .bar i{display:block}
-  .bar .a{background:var(--away)}
-  .bar .h{background:var(--home)}
+  .bar .a{background:var(--away)} .bar .h{background:var(--home)}
+  .barfoot{display:flex;justify-content:space-between;font-size:11px;
+           color:var(--dim2);margin-top:5px;gap:8px}
 
-  .verdict{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-           margin-top:14px;padding:11px 13px;border-radius:9px;
-           background:var(--soft);border:1px solid var(--line2);font-size:14px}
-  .verdict .tag{font-size:10.5px;font-weight:700;text-transform:uppercase;
-                letter-spacing:.05em;color:var(--dim2)}
-  .verdict .w{font-weight:700}
-  .verdict .cmp{margin-left:auto;font-size:12px;color:var(--dim)}
+  .final{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:13px;
+         padding:11px 14px;border-radius:9px;background:var(--soft);
+         border:1px solid var(--line2);font-size:14px}
+  .final.big{background:#fff;border-color:var(--line)}
+  .final .tag{font-size:10.5px;font-weight:700;text-transform:uppercase;
+              letter-spacing:.05em;color:var(--dim2)}
+  .final .sc{font-weight:800;font-size:17px;font-variant-numeric:tabular-nums}
+  .final .vd{margin-left:auto;font-weight:700;font-size:13px}
+  .ok{color:var(--home)} .no{color:var(--miss)}
 
-  .result{display:flex;justify-content:space-between;align-items:center;gap:10px;
-          margin-top:11px;padding:10px 13px;border-radius:9px;font-size:14px;
-          background:var(--soft);border:1px solid var(--line2)}
-  .ok{color:var(--home);font-weight:700}
-  .no{color:var(--miss);font-weight:700}
+  .pending{margin-top:13px;padding:12px 14px;border-radius:9px;
+           background:var(--warnbg);border:1px solid var(--warnline);
+           font-size:13.5px;color:#8a5a10;line-height:1.5}
+  .pending b{color:#7a4a00}
 
   .pitchers{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
-  .p{background:var(--soft);border:1px solid var(--line2);border-radius:9px;padding:11px 13px}
-  .p.h{text-align:right}
+  .p{background:var(--soft);border:1px solid var(--line2);border-radius:9px;
+     padding:11px 13px;display:flex;gap:11px;align-items:flex-start}
+  .pbody{min-width:0;flex:1}
+  /* Retrato del lanzador: las iniciales van debajo y la foto encima; si la
+     imagen no carga se oculta y quedan las letras. */
+  .phead{position:relative;flex:0 0 auto;border-radius:50%;overflow:hidden;
+         background:#dde4ea;display:flex;align-items:center;justify-content:center;
+         border:1px solid var(--line)}
+  .phead span{color:#7d8b97;font-weight:800;letter-spacing:.02em}
+  .phead img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+             object-position:top center;background:#dde4ea}
+  .phead.big{width:56px;height:56px}
+  .phead.big span{font-size:17px}
+  .phead.mini{width:26px;height:26px;display:inline-flex;vertical-align:middle;
+              margin-right:8px}
+  .phead.mini span{font-size:10px}
+  .p.miss .phead{background:#f2e3c4;border-color:var(--warnline)}
+  .p.miss .phead span{color:#9a7b3a}
+  .p.miss{background:var(--warnbg);border-color:var(--warnline)}
   .plabel{font-size:10px;text-transform:uppercase;letter-spacing:.06em;
           color:var(--dim2);font-weight:700}
   .pname{font-weight:700;font-size:14.5px;margin:3px 0 5px;
@@ -131,16 +272,13 @@
   h4 img{width:22px;height:22px;object-fit:contain}
   h5{margin:14px 0 6px;font-size:10.5px;color:var(--dim2);font-weight:700;
      text-transform:uppercase;letter-spacing:.06em}
-  .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));
-      gap:7px;margin-bottom:12px}
-  .kv div{background:var(--soft);border:1px solid var(--line2);border-radius:7px;
-          padding:6px 8px}
+  .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:7px;margin-bottom:12px}
+  .kv div{background:var(--soft);border:1px solid var(--line2);border-radius:7px;padding:6px 8px}
   .kv .kk{font-size:9.5px;color:var(--dim2);text-transform:uppercase;
           letter-spacing:.05em;font-weight:700}
   .kv .vv{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
 
-  table{width:100%;border-collapse:collapse;font-size:12.5px;
-        font-variant-numeric:tabular-nums}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
   th{text-align:left;color:var(--dim2);font-weight:700;font-size:10px;
      text-transform:uppercase;letter-spacing:.05em;padding:6px 7px;
      border-bottom:1px solid var(--line)}
@@ -160,219 +298,302 @@
   .hide{display:none}
   .empty{color:var(--dim);padding:36px;text-align:center;background:var(--card);
          border:1px solid var(--line);border-radius:11px}
-  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--dim);
-          margin-top:10px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--dim);margin-top:10px}
   .legend span{display:flex;align-items:center;gap:6px}
   .dot{width:10px;height:10px;border-radius:3px;display:inline-block}
 
   @media(max-width:680px){
     .pitchers,.cols{grid-template-columns:1fr}
-    .p.h,.side.h{text-align:left}
-    .side.h{flex-direction:row}
-    .matchup{grid-template-columns:1fr}
-    .vs{display:none}
+    .score{font-size:28px;min-width:38px}
+    .tname{font-size:15px}
+    .final .vd{margin-left:0;width:100%}
   }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>Predicciones MLB <span id="season"></span></h1>
+    <div class="hrow">
+      <h1>Predicciones MLB <span id="season"></span></h1>
+      <button class="openside" id="openside">Funcionamiento del modelo</button>
+    </div>
     <div class="sub" id="meta"></div>
   </header>
 
   <div class="cards" id="cards"></div>
-  <div class="info" id="como"></div>
-  <div class="info warnbox" id="note"></div>
 
   <div class="tabs">
-    <button class="tab on" data-v="pred">Predicciones por fecha</button>
+    <button class="tab on" data-v="pred">Partidos por fecha</button>
+    <button class="tab" data-v="resumen">Resumen general</button>
     <button class="tab" data-v="tabla">Tabla de equipos</button>
-    <button class="tab" data-v="conf">Solo abridores confirmados</button>
   </div>
 
-  <div id="pred"></div>
+  <div id="pred">
+    <div class="days" id="days"></div>
+    <div id="dia"></div>
+  </div>
+  <div id="resumen" class="hide"></div>
   <div id="tabla" class="hide"></div>
 </div>
 
-<script>
-const DATA = /*__DATA__*/null;
+<div class="backdrop" id="backdrop"></div>
+<aside class="side" id="side">
+  <div class="sidehead">
+    <h2>Funcionamiento del modelo</h2>
+    <button class="closeside" id="closeside" title="Cerrar">&times;</button>
+  </div>
+  <div class="sidebody" id="sidebody"></div>
+</aside>
 
-const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio",
-               "agosto","septiembre","octubre","noviembre","diciembre"];
-const DIAS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+<script>
+let DATA = /*__DATA__*/null;
+
+const MESES  = ["enero","febrero","marzo","abril","mayo","junio","julio",
+                "agosto","septiembre","octubre","noviembre","diciembre"];
+const DIAS   = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const DIAS_C = ["dom","lun","mar","mié","jue","vie","sáb"];
 
 const logo = id => `https://www.mlbstatic.com/team-logos/${id}.svg`;
-
+const foto = id => `https://midfield.mlbstatic.com/v1/people/${id}/spots/120`;
+// Iniciales de reserva si la foto no carga (jugador sin retrato, sin red, etc.).
+const iniciales = n => String(n||"?").split(/\s+/).filter(Boolean)
+  .slice(0,2).map(w => w[0]).join("").toUpperCase();
 // El modelo trabaja en precisión completa; aquí solo se formatea para mostrar.
 const pc = n => Number(n).toFixed(2);   // porcentajes: 53.40
 const n4 = n => Number(n).toFixed(4);   // logloss / brier
+// Porcentaje de victorias de un récord; "-" si todavía no ha jugado.
+const rec = (w,l) => (w+l) ? ((w/(w+l))*100).toFixed(2)+"%" : "-";
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-function fechaLarga(iso){
+function partesFecha(iso){
   const [y,m,d] = iso.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m-1, d));
-  return `${DIAS[dt.getUTCDay()]} ${d} de ${MESES[m-1]}`;
+  return { dow: new Date(Date.UTC(y, m-1, d)).getUTCDay(), d, m };
+}
+function fechaLarga(iso){
+  const p = partesFecha(iso);
+  return `${DIAS[p.dow]} ${p.d} de ${MESES[p.m-1]}`;
 }
 function hora(iso){
   if(!iso) return "";
   const d = new Date(iso);
-  if(isNaN(d)) return "";
-  return d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+  return isNaN(d) ? "" : d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
 }
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c =>
-  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-let soloConfirmados = false;
+let umbral = 60;            // % mínimo para entrar en la selección del día
+let fechaSel = null;        // fecha mostrada
+let abiertos = new Set();   // detalles desplegados, se conservan al refrescar
+let marcadores = {};        // gamePk -> "visitante-local", para detectar cambios
+let cambiados = new Set();  // partidos cuyo marcador cambió en el último refresco
+
+// Compara los marcadores nuevos con los anteriores para poder resaltarlos.
+function detectarCambios(d){
+  cambiados = new Set();
+  if(!d) return;
+  for(const f of d.fechas) for(const g of f.games){
+    const k = `${g.awayScore}-${g.homeScore}`;
+    if(marcadores[g.gamePk] !== undefined && marcadores[g.gamePk] !== k){
+      cambiados.add(g.gamePk);
+    }
+    marcadores[g.gamePk] = k;
+  }
+}
+
+/* ---------------------------------------------------- abridores */
+// Retrato + iniciales debajo: si la imagen falla se oculta y quedan las letras.
+function retrato(p, size){
+  const ini = p.known || p.id ? iniciales(p.name) : "?";
+  const img = p.id
+    ? `<img src="${foto(p.id)}" alt="" loading="lazy"
+         onerror="this.style.display='none'">`
+    : "";
+  return `<div class="phead ${size}"><span>${esc(ini)}</span>${img}</div>`;
+}
 
 function pitcherHTML(p, lado){
   const label = lado === "h" ? "Abridor local" : "Abridor visitante";
   if(!p.known){
-    return `<div class="p ${lado}">
-      <div class="plabel">${label}</div>
-      <div class="pname unk">${esc(p.name)}</div>
-      <div class="pstats">Todavía no anunciado: el modelo usa el promedio de la liga</div>
+    return `<div class="p miss">
+      ${retrato(p, "big")}
+      <div class="pbody">
+        <div class="plabel">${label}</div>
+        <div class="pname unk">${esc(p.name)}</div>
+        <div class="pstats">El equipo todavía no lo anuncia</div>
+      </div>
     </div>`;
   }
-  return `<div class="p ${lado}">
-    <div class="plabel">${label}</div>
-    <div class="pname">${esc(p.name)}</div>
-    <div class="pstats">
-      Efectividad <b>${esc(p.era)}</b> &middot; Récord <b>${p.wins}-${p.losses}</b> &middot;
-      WHIP <b>${esc(p.whip)}</b><br>
-      ${esc(p.innings)} entradas &middot; ${p.strikeouts} ponches &middot;
-      ${p.walks} bases &middot; ${p.starts} aperturas
+  return `<div class="p">
+    ${retrato(p, "big")}
+    <div class="pbody">
+      <div class="plabel">${label}</div>
+      <div class="pname">${esc(p.name)}</div>
+      <div class="pstats">
+        Efectividad <b>${esc(p.era)}</b> &middot; Récord <b>${p.wins}-${p.losses}</b> &middot;
+        WHIP <b>${esc(p.whip)}</b><br>
+        ${esc(p.innings)} entradas &middot; ${p.strikeouts} ponches &middot;
+        ${p.walks} bases &middot; ${p.starts} aperturas
+      </div>
     </div>
   </div>`;
 }
 
+/* ---------------------------------------------------- detalle de equipo */
 function bateadoresHTML(t){
   if(!t.hitters.length) return "<div class='pstats'>Sin bateadores con 50 turnos o más.</div>";
   const filas = t.hitters.map(h => `<tr>
       <td>${esc(h.name)} <span class="pos">${esc(h.pos)}</span></td>
-      <td class="n"><b>${esc(h.avg)}</b></td>
-      <td class="n">${esc(h.obp)}</td>
-      <td class="n">${esc(h.ops)}</td>
-      <td class="n">${h.hr}</td>
-      <td class="n">${h.rbi}</td>
+      <td class="n"><b>${esc(h.avg)}</b></td><td class="n">${esc(h.obp)}</td>
+      <td class="n">${esc(h.ops)}</td><td class="n">${h.hr}</td><td class="n">${h.rbi}</td>
     </tr>`).join("");
   return `<h5>Bateadores (ordenados por promedio)</h5>
-    <table><thead><tr>
-      <th>Jugador</th><th class="n">AVG</th><th class="n">OBP</th>
+    <table><thead><tr><th>Jugador</th><th class="n">AVG</th><th class="n">OBP</th>
       <th class="n">OPS</th><th class="n">HR</th><th class="n">CI</th>
     </tr></thead><tbody>${filas}</tbody></table>`;
 }
-
 function rotacionHTML(t){
   if(!t.rotation.length) return "";
   const filas = t.rotation.map(p => `<tr>
-      <td>${esc(p.name)}</td>
-      <td class="n"><b>${esc(p.era)}</b></td>
-      <td class="n">${p.wins}-${p.losses}</td>
-      <td class="n">${esc(p.whip)}</td>
-      <td class="n">${p.strikeouts}</td>
-      <td class="n">${p.starts}</td>
+      <td>${retrato(p, "mini")}${esc(p.name)}</td><td class="n"><b>${esc(p.era)}</b></td>
+      <td class="n">${p.wins}-${p.losses}</td><td class="n">${esc(p.whip)}</td>
+      <td class="n">${p.strikeouts}</td><td class="n">${p.starts}</td>
     </tr>`).join("");
   return `<h5>Rotación de abridores</h5>
-    <table><thead><tr>
-      <th>Lanzador</th><th class="n">ERA</th><th class="n">G-P</th>
+    <table><thead><tr><th>Lanzador</th><th class="n">ERA</th><th class="n">G-P</th>
       <th class="n">WHIP</th><th class="n">K</th><th class="n">Ap.</th>
     </tr></thead><tbody>${filas}</tbody></table>`;
 }
-
 function equipoDetalle(t, titulo){
-  const kv = [
-    ["AVG", t.batAvg, "promedio de bateo"],
-    ["OBP", t.obp], ["SLG", t.slg], ["OPS", t.ops],
-    ["Carreras", t.runs], ["HR", t.homeRuns],
-    ["ERA", t.era], ["WHIP", t.whip],
-    ["CF/j", t.rsPg], ["CC/j", t.raPg],
-    ["Últ. 10", pc(t.form10) + "%"],
-  ].map(([k,v]) => `<div><div class="kk">${k}</div><div class="vv">${esc(v)}</div></div>`).join("");
-
+  const kv = [["En casa",`${t.homeW}-${t.homeL}`],["% en casa",rec(t.homeW,t.homeL)],
+    ["De visita",`${t.awayW}-${t.awayL}`],["% de visita",rec(t.awayW,t.awayL)],
+    ["AVG",t.batAvg],["OBP",t.obp],["SLG",t.slg],["OPS",t.ops],
+    ["Carreras",t.runs],["HR",t.homeRuns],["ERA",t.era],["WHIP",t.whip],
+    ["CF/j",t.rsPg],["CC/j",t.raPg],["Últ. 10",pc(t.form10)+"%"]]
+    .map(([k,v]) => `<div><div class="kk">${k}</div><div class="vv">${esc(v)}</div></div>`).join("");
   return `<div>
     <h4><img src="${logo(t.id)}" alt=""> ${titulo}: ${esc(t.name)}</h4>
-    <div class="kv">${kv}</div>
-    ${bateadoresHTML(t)}
-    ${rotacionHTML(t)}
-  </div>`;
+    <div class="kv">${kv}</div>${bateadoresHTML(t)}${rotacionHTML(t)}</div>`;
 }
 
+/* ---------------------------------------------------- tarjeta de partido */
 function juegoHTML(g, idx){
-  const localGana = g.pHome >= 50;
-  const ganador = localGana ? g.home : g.away;
-  const prob = localGana ? g.pHome : g.pAway;
+  const empezo = g.final || g.live;
+  const hs = g.homeScore, as = g.awayScore;
 
-  const badge = g.final
-    ? '<span class="badge b-fin">Ya jugado</span>'
-    : g.confirmed
-      ? '<span class="badge b-ok">Abridores confirmados</span>'
-      : '<span class="badge b-warn">Abridores sin confirmar</span>';
+  const badge = g.final ? '<span class="badge b-fin">Finalizado</span>'
+    : g.live ? '<span class="badge b-live"><i class="lp"></i>En vivo</span>'
+    : g.confirmed ? '<span class="badge b-ok">Abridores confirmados</span>'
+    : '<span class="badge b-warn">Falta confirmar abridor</span>';
 
-  let resultado = "";
-  if(g.final && g.homeScore !== null && g.awayScore !== null){
-    const marca = g.hit === true ? '<span class="ok">✓ el pronóstico acertó</span>'
-                : g.hit === false ? '<span class="no">✗ el pronóstico falló</span>'
-                : '<span>empate</span>';
-    resultado = `<div class="result">
-      <span>Resultado final: <b>${esc(g.away.abbrev || g.away.name)} ${g.awayScore}
-        &ndash; ${g.homeScore} ${esc(g.home.abbrev || g.home.name)}</b></span>
-      ${marca}
+  // Columna derecha. Si el partido ya empezó manda el marcador, pero debajo se
+  // sigue viendo la probabilidad que se le dio a ESE equipo, no solo al favorito.
+  const colDer = esLocal => {
+    const v = g.pHome === null ? null : (esLocal ? g.pHome : g.pAway);
+    if(empezo){
+      const mio = esLocal ? hs : as, otro = esLocal ? as : hs;
+      const gana = mio !== null && otro !== null && mio > otro;
+      const fl = cambiados.has(g.gamePk) ? " flash" : "";
+      const mini = v === null ? "" : `<div class="pmini">${pc(v)}% pronosticado</div>`;
+      return `<div class="scorewrap">
+        <div class="score${gana ? " win" : ""}${fl}">${mio ?? "-"}</div>${mini}</div>`;
+    }
+    if(v === null) return "";
+    return `<div class="pctcol"><div class="pv ${esLocal ? "ph" : "pa"}">${pc(v)}%</div>
+      <div class="pl">probabilidad</div></div>`;
+  };
+
+  // A cada equipo se le muestra el registro EN LA CONDICIÓN en que juega hoy,
+  // que es justo lo que pesa en el pronóstico.
+  const fila = (t, esLocal, rol) => {
+    const w = esLocal ? t.homeW : t.awayW;
+    const l = esLocal ? t.homeL : t.awayL;
+    const cond = esLocal ? "en casa" : "de visitante";
+    return `<div class="row">
+      <div class="teamside">
+        <img class="logo" src="${logo(t.id)}" alt="">
+        <div class="tinfo">
+          <div class="tname">${esc(t.name)}</div>
+          <div class="trec">${rol} &middot; global ${t.wins}-${t.losses}
+            &middot; Elo ${t.elo} &middot; AVG ${esc(t.batAvg)} &middot; ERA ${esc(t.era)}</div>
+          <div class="split"><b>${w}-${l}</b> ${cond}
+            <span class="sp">${rec(w,l)}</span></div>
+        </div>
+      </div>
+      ${colDer(esLocal)}
     </div>`;
+  };
+
+  let bloque = "";
+  if(empezo){
+    // Ya empezó: el marcador manda.
+    const etiqueta = g.final ? "Resultado final" : "Marcador ahora";
+    let veredicto = "";
+    if(g.pHome !== null){
+      const marca = g.hit === true ? ' <span class="ok">✓ acertó</span>'
+                  : g.hit === false ? ' <span class="no">✗ falló</span>' : "";
+      veredicto = `<span class="vd">Se pronosticó
+        <span class="pa">${esc(g.away.abbrev || g.away.name)} ${pc(g.pAway)}%</span> &middot;
+        <span class="ph">${esc(g.home.abbrev || g.home.name)} ${pc(g.pHome)}%</span>${marca}</span>`;
+    }
+    bloque = `<div class="final big">
+      <span class="tag">${etiqueta}</span>
+      <span class="sc">${esc(g.away.abbrev || g.away.name)} ${as ?? "-"}
+        &nbsp;&ndash;&nbsp; ${hs ?? "-"} ${esc(g.home.abbrev || g.home.name)}</span>
+      ${veredicto}
+    </div>`;
+  } else if(g.pHome === null){
+    // Sin abridor confirmado no se publica número.
+    const faltanDos = !g.awayPitcher.known && !g.homePitcher.known;
+    const falta = faltanDos ? "ninguno de los dos equipos"
+                : (!g.awayPitcher.known ? esc(g.away.name) : esc(g.home.name));
+    bloque = `<div class="pending">
+      <b>Sin pronóstico todavía.</b> No se muestra probabilidad porque ${falta}
+      ha anunciado su abridor. Quién lanza mueve bastante el
+      resultado esperado &mdash;no es lo mismo un abridor con efectividad de 2.50 que uno
+      de 5.00&mdash;, así que dar un número ahora sería inventarlo. Aparecerá en cuanto
+      los equipos lo confirmen.
+    </div>`;
+  } else {
+    const localGana = g.pHome >= 50;
+    const ganador = localGana ? g.home : g.away;
+    const prob = localGana ? g.pHome : g.pAway;
+    bloque = `<div class="bar">
+        <i class="a" style="width:${pc(g.pAway)}%"></i>
+        <i class="h" style="width:${pc(g.pHome)}%"></i>
+      </div>
+      <div class="barfoot">
+        <span>${esc(g.away.abbrev || g.away.name)} ${pc(g.pAway)}%</span>
+        <span>el modelo Elo daría ${pc(g.eloHome)}% al local</span>
+        <span>${esc(g.home.abbrev || g.home.name)} ${pc(g.pHome)}%</span>
+      </div>
+      <div class="final">
+        <span class="tag">Pronóstico</span>
+        <span class="sc" style="color:${localGana ? "var(--home)" : "var(--away)"}">
+          ${esc(ganador.name)} &middot; ${pc(prob)}%</span>
+        <span class="vd">
+          <span class="pa">${esc(g.away.name)} ${pc(g.pAway)}%</span> &middot;
+          <span class="ph">${esc(g.home.name)} ${pc(g.pHome)}%</span></span>
+      </div>`;
   }
 
-  return `<div class="game" data-conf="${g.confirmed}">
+  const cls = g.live ? "game live" : "game";
+  const abierto = abiertos.has(idx);
+
+  return `<div class="${cls}">
     <div class="ghead">
       <span>${hora(g.start)} &middot; ${esc(g.venue)} &middot; ${esc(g.status)}</span>
       ${badge}
     </div>
     <div class="gbody">
-      <div class="matchup">
-        <div class="side">
-          <img class="logo" src="${logo(g.away.id)}" alt="">
-          <div class="tinfo">
-            <div class="tname">${esc(g.away.name)}</div>
-            <div class="trec">Visitante &middot; ${g.away.wins}-${g.away.losses}
-              &middot; Elo ${g.away.elo}</div>
-          </div>
-        </div>
-        <div class="vs">EN</div>
-        <div class="side h">
-          <img class="logo" src="${logo(g.home.id)}" alt="">
-          <div class="tinfo">
-            <div class="tname">${esc(g.home.name)}</div>
-            <div class="trec">Local &middot; ${g.home.wins}-${g.home.losses}
-              &middot; Elo ${g.home.elo}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="probs">
-        <div><div class="pv pa">${pc(g.pAway)}%</div>
-          <div class="pl">gana ${esc(g.away.abbrev || g.away.name)}</div></div>
-        <div class="r"><div class="pv ph">${pc(g.pHome)}%</div>
-          <div class="pl">gana ${esc(g.home.abbrev || g.home.name)}</div></div>
-      </div>
-      <div class="bar">
-        <i class="a" style="width:${pc(g.pAway)}%"></i>
-        <i class="h" style="width:${pc(g.pHome)}%"></i>
-      </div>
-
-      <div class="verdict">
-        <span class="tag">Ganador pronosticado</span>
-        <span class="w" style="color:${localGana ? "var(--home)" : "var(--away)"}">
-          ${esc(ganador.name)} &middot; ${pc(prob)}%</span>
-        <span class="cmp">el modelo Elo daría ${pc(g.eloHome)}% al local</span>
-      </div>
-
-      ${resultado}
-
+      ${fila(g.away, false, "Visitante")}
+      ${fila(g.home, true,  "Local")}
+      ${bloque}
       <div class="pitchers">
         ${pitcherHTML(g.awayPitcher,"a")}
         ${pitcherHTML(g.homePitcher,"h")}
       </div>
-
-      <button class="more" data-i="${idx}">Ver jugadores y estadísticas completas de ambos equipos</button>
-      <div class="detail" id="d${idx}">
+      <button class="more" data-i="${idx}">${abierto ? "Ocultar detalle"
+        : "Ver jugadores y estadísticas completas de ambos equipos"}</button>
+      <div class="detail${abierto ? " on" : ""}" id="d${idx}">
         <div class="cols">
           ${equipoDetalle(g.away,"Visitante")}
           ${equipoDetalle(g.home,"Local")}
@@ -382,128 +603,449 @@ function juegoHTML(g, idx){
   </div>`;
 }
 
+/* ---------------------------------------------------- render */
+function etiquetaDia(iso){
+  if(iso === DATA.hoy) return "Hoy";
+  const dif = (new Date(iso+"T00:00:00Z") - new Date(DATA.hoy+"T00:00:00Z")) / 86400000;
+  if(dif === 1) return "Mañana";
+  const p = partesFecha(iso);
+  return `${DIAS_C[p.dow]} ${p.d}`;
+}
+
+function renderDias(){
+  const cont = document.getElementById("days");
+  if(!DATA.fechas.length){ cont.innerHTML = ""; return; }
+  if(!fechaSel || !DATA.fechas.some(f => f.date === fechaSel)){
+    fechaSel = (DATA.fechas.find(f => f.date === DATA.hoy) || DATA.fechas[0]).date;
+  }
+  cont.innerHTML = DATA.fechas.map(f => {
+    const env = f.games.filter(g => g.live).length;
+    const fin = f.games.filter(g => g.final).length;
+    const conf = f.games.filter(g => g.confirmed).length;
+    const detalle = env ? `<span class="lv"><i></i>${env} en vivo</span>`
+                  : fin === f.games.length ? `${fin} finalizados`
+                  : `${f.games.length} juegos · ${conf} con pronóstico`;
+    return `<button class="day${f.date === fechaSel ? " on" : ""}" data-d="${f.date}">
+      <div class="dd">${etiquetaDia(f.date)}</div><div class="dn">${detalle}</div></button>`;
+  }).join("");
+}
+
+/* Selección del día: los partidos cuyo favorito supera el umbral.
+   Con probabilidades independientes, acertar TODOS es el producto, y los
+   aciertos esperados son la suma. */
+function seleccionDelDia(f){
+  return f.games
+    .filter(g => g.pHome !== null)
+    .map(g => {
+      const local = g.pHome >= g.pAway;
+      return {
+        g,
+        equipo: local ? g.home : g.away,
+        rival: local ? g.away : g.home,
+        p: local ? g.pHome : g.pAway,
+        local,
+      };
+    })
+    .filter(x => x.p >= umbral)
+    .sort((a,b) => b.p - a.p);
+}
+
+function botonesUmbral(){
+  return [55,60,65,70].map(u =>
+    `<button class="uth${u === umbral ? " on" : ""}" data-u="${u}">${u}%</button>`).join("");
+}
+
+function seleccionHTML(f){
+  const picks = seleccionDelDia(f);
+  const banda = (DATA.modelo.reciente?.bandas || []).find(b => b.umbral === umbral);
+
+  const botones = botonesUmbral();
+
+  if(!picks.length){
+    return `<div class="sel">
+      <div class="selhead"><h3>Selección del día</h3>
+        <div class="uths">Mínimo ${botones}</div></div>
+      <p class="selp">Ningún partido de esta fecha supera el ${umbral} %
+        ${f.games.some(g => g.pHome === null)
+          ? "(varios siguen sin abridor confirmado)." : "."}</p></div>`;
+  }
+
+  const n = picks.length;
+  const media = picks.reduce((a,x) => a + x.p, 0) / n;
+  const esperados = picks.reduce((a,x) => a + x.p/100, 0);
+  const todos = picks.reduce((a,x) => a * (x.p/100), 1) * 100;
+  const alguno = (1 - picks.reduce((a,x) => a * (1 - x.p/100), 1)) * 100;
+
+  const uno = n === 1;
+  const jugados = picks.filter(x => x.g.final && x.g.hit !== null);
+  const aciertos = jugados.filter(x => x.g.hit === true).length;
+  const real = jugados.length
+    ? `<div class="stat"><div class="k">Resultado real</div>
+       <div class="v">${aciertos}/${jugados.length}</div>
+       <div class="d">${jugados.length < n ? "de los ya jugados" : "acertados"}
+       &middot; ${rec(aciertos, jugados.length - aciertos)}</div></div>` : "";
+
+  const lista = picks.map(x => {
+    const marca = !x.g.final ? "" : x.g.hit === true
+      ? '<span class="ok">✓</span>' : '<span class="no">✗</span>';
+    return `<tr>
+      <td><img class="lg" src="${logo(x.equipo.id)}" alt="">${esc(x.equipo.name)}
+        <span class="pos">${x.local ? "local" : "visita"}</span></td>
+      <td class="op">vs ${esc(x.rival.abbrev || x.rival.name)}</td>
+      <td class="n"><b>${pc(x.p)}%</b></td>
+      <td class="n">${marca}</td>
+    </tr>`;
+  }).join("");
+
+  return `<div class="sel">
+    <div class="selhead">
+      <h3>Selección del día &mdash; favoritos por encima del ${umbral} %</h3>
+      <div class="uths">Mínimo ${botones}</div>
+    </div>
+    <div class="selcards">
+      <div class="stat"><div class="k">${uno ? "Partido elegido" : "Partidos elegidos"}</div>
+        <div class="v">${n}</div>
+        <div class="d">de ${f.games.length} de la jornada</div></div>
+      <div class="stat"><div class="k">Probabilidad media</div><div class="v">${pc(media)}%</div>
+        <div class="d">por partido</div></div>
+      <div class="stat"><div class="k">Aciertos esperados</div>
+        <div class="v">${esperados.toFixed(2)}</div>
+        <div class="d">de ${n} &middot; suma de probabilidades</div></div>
+      <div class="stat"><div class="k">${uno ? "Acertarlo" : `Acertar los ${n}`}</div>
+        <div class="v">${pc(todos)}%</div>
+        <div class="d">${uno ? "es el único de la selección" : "combinada, todos a la vez"}</div></div>
+      ${uno ? "" : `<div class="stat"><div class="k">Acertar al menos 1</div>
+        <div class="v">${pc(alguno)}%</div>
+        <div class="d">al menos uno de los ${n}</div></div>`}
+      ${real}
+    </div>
+    <table class="seltab"><thead><tr>
+      <th>Favorito</th><th>Rival</th><th class="n">Probabilidad</th><th class="n"></th>
+    </tr></thead><tbody>${lista}</tbody></table>
+    ${banda && banda.partidos > 0 ? `<p class="selp">
+      <b>Contraste con la realidad:</b> en los últimos ${DATA.modelo.reciente.partidos}
+      partidos, los pronósticos por encima del ${umbral} % acertaron
+      <b>${pc(banda.acierto)}%</b> de las veces (${banda.partidos} casos). El modelo dice
+      ${pc(media)} % de media hoy, así que espera algo parecido a eso, no a un pleno.</p>` : ""}
+    ${uno ? "" : `<p class="selp">La combinada asume que los partidos son independientes,
+    que es razonable entre encuentros distintos. Ojo: con ${n} partidos al ${pc(media)} %
+    de media, acertarlos todos (${pc(todos)} %) es bastante menos probable que fallar
+    al menos uno.</p>`}
+  </div>`;
+}
+
+/* Agregado de TODO el rango: suma de las probabilidades de cada favorito que
+   supera el umbral, expresada también como tasa de acierto esperada. */
+function resumenGeneral(){
+  const porDia = DATA.fechas
+    .map(f => ({ fecha: f.date, total: f.games.length, picks: seleccionDelDia(f) }))
+    .filter(d => d.picks.length);
+
+  const todos = porDia.flatMap(d => d.picks);
+  const n = todos.length;
+  if(!n){
+    return `<div class="sel"><div class="selhead">
+      <h3>Resumen general</h3><div class="uths">Mínimo ${botonesUmbral()}</div></div>
+      <p class="selp">Ningún partido del rango supera el ${umbral} %.</p></div>`;
+  }
+
+  const suma      = todos.reduce((a,x) => a + x.p/100, 0);   // aciertos esperados
+  const tasa      = (suma / n) * 100;                        // esa suma como %
+  const combinada = todos.reduce((a,x) => a * (x.p/100), 1) * 100;
+  const jugados   = todos.filter(x => x.g.final && x.g.hit !== null);
+  const aciertos  = jugados.filter(x => x.g.hit === true).length;
+  const banda     = (DATA.modelo.reciente?.bandas || []).find(b => b.umbral === umbral);
+
+  // Cuando la combinada es diminuta, "1 entre X" se entiende mejor que el %.
+  const entre = combinada > 0 ? Math.round(100 / combinada) : 0;
+  const combTxt = combinada >= 1 ? pc(combinada) + "%"
+                : `1 entre ${entre.toLocaleString("es")}`;
+
+  const real = jugados.length
+    ? `<div class="stat"><div class="k">Resultado real</div>
+        <div class="v">${rec(aciertos, jugados.length - aciertos)}</div>
+        <div class="d">${aciertos} de ${jugados.length} ya jugados</div></div>` : "";
+
+  const filas = porDia.map(d => {
+    const m  = d.picks.reduce((a,x) => a + x.p, 0) / d.picks.length;
+    const es = d.picks.reduce((a,x) => a + x.p/100, 0);
+    const cb = d.picks.reduce((a,x) => a * (x.p/100), 1) * 100;
+    const jg = d.picks.filter(x => x.g.final && x.g.hit !== null);
+    const ok = jg.filter(x => x.g.hit === true).length;
+    return `<tr>
+      <td>${fechaLarga(d.fecha)}${d.fecha === DATA.hoy ? ' <span class="pos">hoy</span>' : ""}</td>
+      <td class="n">${d.picks.length}<span class="pos"> / ${d.total}</span></td>
+      <td class="n">${pc(m)}%</td>
+      <td class="n">${es.toFixed(2)}</td>
+      <td class="n">${pc(cb)}%</td>
+      <td class="n">${jg.length ? `${ok}/${jg.length}` : "&mdash;"}</td>
+    </tr>`;
+  }).join("");
+
+  return `<div class="sel">
+    <div class="selhead">
+      <h3>Resumen general &mdash; todos los favoritos por encima del ${umbral} %</h3>
+      <div class="uths">Mínimo ${botonesUmbral()}</div>
+    </div>
+    <div class="selcards">
+      <div class="stat"><div class="k">Partidos seleccionados</div><div class="v">${n}</div>
+        <div class="d">en ${porDia.length} fechas</div></div>
+      <div class="stat"><div class="k">Suma de probabilidades</div>
+        <div class="v">${suma.toFixed(2)}</div>
+        <div class="d">aciertos esperados de ${n}</div></div>
+      <div class="stat"><div class="k">Acierto esperado</div><div class="v">${pc(tasa)}%</div>
+        <div class="d">esa suma dividida entre ${n}</div></div>
+      <div class="stat"><div class="k">Acertar los ${n}</div><div class="v">${combTxt}</div>
+        <div class="d">combinada de todo el rango</div></div>
+      ${real}
+    </div>
+    <table class="seltab"><thead><tr>
+      <th>Fecha</th><th class="n">Elegidos</th><th class="n">Media</th>
+      <th class="n">Esperados</th><th class="n">Combinada</th><th class="n">Real</th>
+    </tr></thead><tbody>${filas}</tbody></table>
+    ${banda && banda.partidos > 0 ? `<p class="selp">
+      <b>Contraste:</b> el modelo espera acertar el <b>${pc(tasa)}%</b> de estos ${n}
+      partidos. En los últimos ${DATA.modelo.reciente.partidos} partidos reales, sus
+      pronósticos por encima del ${umbral} % acertaron el <b>${pc(banda.acierto)}%</b>
+      (${banda.partidos} casos). Si esas dos cifras se parecen, el modelo está bien
+      calibrado en esta banda; si la esperada es mucho mayor, se está confiando de más.</p>` : ""}
+    <p class="selp">«Suma de probabilidades» es literalmente sumar el porcentaje de cada
+    favorito: con 3 partidos al 60 %, la suma es 1.80, es decir que esperas acertar entre
+    1 y 2. Dividida entre el número de partidos da el acierto esperado. No confundir con
+    la combinada, que exige que salgan <b>todos</b> y por eso cae tan rápido.</p>
+  </div>`;
+}
+
+function renderDia(){
+  const cont = document.getElementById("dia");
+  const f = DATA.fechas.find(x => x.date === fechaSel);
+  if(!f){ cont.innerHTML = "<div class='empty'>No hay partidos en esta fecha.</div>"; return; }
+  const conf = f.games.filter(g => g.confirmed).length;
+  const fin  = f.games.filter(g => g.final).length;
+  cont.innerHTML = `<div class="dayhead"><h2>${fechaLarga(f.date)}</h2>
+      <div class="rule"></div>
+      <span class="cnt">${f.games.length} partidos &middot; ${conf} con pronóstico
+        &middot; ${fin} finalizados</span></div>` +
+    seleccionHTML(f) +
+    f.games.map((g,i) => juegoHTML(g, f.date + "_" + i)).join("");
+}
+
+
+/* Contenido del panel lateral "Funcionamiento del modelo". Se saca del flujo
+   principal para que la vista quede limpia, pero sigue estando a un clic. */
+const GRUPOS = [
+  ["Fuerza del equipo", ["elo_diff","elo_prob","home_wpct","away_wpct","wpct_diff",
+    "home_pyth","away_pyth"]],
+  ["Carreras", ["home_rs_pg","home_ra_pg","away_rs_pg","away_ra_pg",
+    "home_rundiff_pg","away_rundiff_pg"]],
+  ["Forma reciente (ultimos 10)", ["home_form10","away_form10","home_rs10","home_ra10",
+    "away_rs10","away_ra10"]],
+  ["Local / visitante (toda la temporada)", ["home_as_home_wpct","away_as_away_wpct",
+    "home_as_home_rd","away_as_away_rd"]],
+  ["Abridor y descanso", ["home_sp_ra","away_sp_ra","home_sp_exp","away_sp_exp",
+    "home_rest","away_rest"]],
+];
+
+function sidebarHTML(){
+  const r = DATA.modelo.reciente;
+
+  const feats = GRUPOS.map(([titulo, fs]) =>
+    `<h5>${titulo}</h5><div class="feats">${fs.map(f => `<code>${f}</code>`).join("")}</div>`
+  ).join("");
+
+  const bandas = (r && r.bandas)
+    ? `<table><thead><tr><th>Confianza</th><th class="n">Acerto</th>
+        <th class="n">Casos</th></tr></thead><tbody>` +
+      r.bandas.map(b => `<tr><td>por encima del ${b.umbral}%</td>
+        <td class="n"><b>${b.partidos ? pc(b.acierto) + "%" : "&mdash;"}</b></td>
+        <td class="n">${b.partidos}</td></tr>`).join("") +
+      `</tbody></table>`
+    : "";
+
+  return `
+    <div class="info">
+      <h3>Como se calcula cada porcentaje</h3>
+      <p>Una red neuronal densa (${DATA.modelo.caracteristicas} &rarr; 32 &rarr; 16 &rarr; 2)
+      entrenada con <b>${DATA.modelo.partidosEntrenamiento.toLocaleString("es")} partidos
+      reales</b> de la MLB Stats API. Para cada partido mira
+      <b>${DATA.modelo.caracteristicas} datos previos</b> de ambos equipos y devuelve la
+      probabilidad de que gane cada uno.</p>
+      <p>Nunca usa informacion del propio partido: el estado de los equipos se actualiza
+      <i>despues</i> de registrar cada resultado, asi que el porcentaje es lo que el modelo
+      habria dicho <b>antes de jugarse</b>. Sin esa disciplina las cifras saldrian infladas
+      y no servirian para nada.</p>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--away)"></i> visitante</span>
+        <span><i class="dot" style="background:var(--home)"></i> local</span>
+        <span><i class="dot" style="background:var(--livec)"></i> partido en juego</span>
+      </div>
+    </div>
+
+    <div class="info">
+      <h3>Las ${DATA.modelo.caracteristicas} caracteristicas</h3>
+      <p>Salvo la forma de los ultimos 10, todos los acumulados cubren la
+      <b>temporada en curso completa, desde el primer dia</b>.</p>
+      ${feats}
+    </div>
+
+    <div class="info warnbox">
+      <h3>Por que algunos partidos no llevan porcentaje</h3>
+      <p>La probabilidad depende de <b>quien abre el partido</b>: un lanzador con
+      efectividad de 2.50 y otro de 5.00 cambian el pronostico varios puntos. Si un equipo
+      todavia no ha anunciado su abridor, <b>no se muestra ningun numero</b> en vez de dar
+      uno poco fiable.</p>
+      <p>Ahora mismo: <b>${DATA.resumen.confirmados}</b> partidos con pronostico y
+      <b>${DATA.resumen.sinConfirmar}</b> a la espera. Los equipos suelen confirmar con
+      3 o 4 dias de antelacion.</p>
+    </div>
+
+    ${r ? `<div class="info">
+      <h3>Que tan bien acierta</h3>
+      <p>Medido sobre los <b>${r.partidos}</b> partidos desde el ${r.desde}, con un modelo
+      que no los vio al entrenar: <b>${pc(r.aciertoRed)}%</b> de acierto, frente al
+      <b>${pc(r.aciertoElo)}%</b> de un Elo simple.
+      Log loss ${n4(r.logloss)}, Brier ${n4(r.brier)}.</p>
+      ${bandas}
+      <p>Cuanto mas segura esta la red, mas acierta. Esta es la referencia honesta para
+      juzgar una seleccion "solo por encima del X %".</p>
+    </div>` : ""}
+
+    <div class="info">
+      <h3>Datos y actualizacion</h3>
+      <p>Todo sale de la <b>MLB Stats API</b> oficial. El panel se refresca solo cada
+      minuto: marcadores en vivo y abridores recien anunciados. Cuando un partido termina
+      entra al historico y <b>la red se reentrena</b> con ese resultado. Datos hasta el
+      partido del ${DATA.ultimoPartido}.</p>
+    </div>
+
+    <div class="info">
+      <h3>Limites que conviene tener presentes</h3>
+      <p>El beisbol es el deporte con mas azar de las grandes ligas: las casas de apuestas
+      profesionales rondan el 57 % de acierto, asi que un 55-58 % ya es bueno. Nadie
+      predice esto "perfectamente".</p>
+      <p>Las probabilidades usan el estado de los equipos <b>a dia de hoy</b> y no simulan
+      los partidos intermedios: cuanto mas lejana la fecha, mas provisional el numero. Y el
+      modelo no sabe de lesiones de ultima hora, alineaciones ni clima.</p>
+    </div>`;
+}
+
 function render(){
   if(!DATA){
-    document.getElementById("pred").innerHTML =
+    document.getElementById("dia").innerHTML =
       "<div class='empty'>Sin datos. Ejecuta <code>Red_neuronal ui</code>.</div>";
     return;
   }
 
   document.getElementById("season").textContent = DATA.temporada;
-  document.getElementById("meta").textContent =
-    `Generado el ${DATA.generado} · datos reales hasta el partido del ${DATA.ultimoPartido} · `+
-    `red neuronal reentrenada con ${DATA.modelo.partidosEntrenamiento.toLocaleString("es")} `+
-    `partidos y ${DATA.modelo.caracteristicas} características por partido`;
+  const env = DATA.resumen.enVivo;
+  document.getElementById("meta").innerHTML =
+    `<span class="pulse${env ? " on" : ""}"></span>Actualizado a las ${DATA.generado} · `+
+    `datos reales hasta el partido del ${DATA.ultimoPartido} · red reentrenada con `+
+    `${DATA.modelo.partidosEntrenamiento.toLocaleString("es")} partidos`;
 
   const r = DATA.modelo.reciente;
   const cards = [
-    ["Partidos", DATA.resumen.partidos, `repartidos en ${DATA.resumen.dias} fechas`],
-    ["Confirmados", DATA.resumen.confirmados, "con abridor ya anunciado"],
-    ["Sin confirmar", DATA.resumen.sinConfirmar, "abridor por anunciar"],
+    ["Con pronóstico", DATA.resumen.confirmados, "ambos abridores confirmados"],
+    ["Sin pronóstico", DATA.resumen.sinConfirmar, "falta anunciar el abridor"],
+    ["En juego ahora", DATA.resumen.enVivo, "marcador en vivo"],
+    ["Finalizados", DATA.resumen.jugados, "con resultado real"],
   ];
   if(r){
     cards.push(["Acierto reciente", pc(r.aciertoRed) + "%",
-                `medido sobre los ${r.partidos} partidos desde el ${r.desde}`]);
-    cards.push(["Referencia Elo", pc(r.aciertoElo) + "%", "mismo periodo, modelo simple"]);
-    cards.push(["Log loss", n4(r.logloss), "calidad de la probabilidad, menos es mejor"]);
+                `sobre ${r.partidos} partidos desde el ${r.desde}`]);
+    cards.push(["Referencia Elo", pc(r.aciertoElo) + "%", "mismo periodo"]);
   }
   document.getElementById("cards").innerHTML = cards.map(([k,v,d]) =>
     `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>
      <div class="d">${d}</div></div>`).join("");
 
-  document.getElementById("como").innerHTML = `
-    <h3>Cómo se calcula cada porcentaje</h3>
-    <p>Una red neuronal entrenada con <b>${DATA.modelo.partidosEntrenamiento.toLocaleString("es")}
-    partidos reales</b> de temporadas anteriores y de la actual. Para cada partido mira
-    <b>25 datos previos</b> de ambos equipos: fuerza Elo, récord, carreras anotadas y
-    permitidas por juego, forma de los últimos 10, expectativa pitagórica, días de descanso
-    y el rendimiento reciente del abridor.</p>
-    <p>Nunca usa información del propio partido, así que el porcentaje es lo que el modelo
-    habría dicho <b>antes de que se jugara</b>. En béisbol un acierto del 55-58 % ya es bueno:
-    las casas de apuestas rondan el 57 %.</p>
-    <div class="legend">
-      <span><i class="dot" style="background:var(--away)"></i> probabilidad del visitante</span>
-      <span><i class="dot" style="background:var(--home)"></i> probabilidad del local</span>
-      <span><i class="dot" style="background:var(--home);opacity:.35"></i> Elo = modelo de referencia simple</span>
-    </div>`;
+  document.getElementById("sidebody").innerHTML = sidebarHTML();
 
-  document.getElementById("note").innerHTML = `
-    <h3>Ojo con las fechas: no todas están confirmadas</h3>
-    <p>Los equipos anuncian su lanzador abridor con pocos días de antelación. De los
-    ${DATA.resumen.partidos} partidos mostrados, solo <b>${DATA.resumen.confirmados}</b>
-    tienen <b>ambos abridores confirmados</b>; en los <b>${DATA.resumen.sinConfirmar}</b>
-    restantes el modelo sustituye al lanzador por el promedio de la liga, así que esas
-    probabilidades son bastante menos fiables.</p>
-    <p>Además, los números se calculan con el estado de los equipos <b>a día de hoy</b>:
-    no simulan los partidos intermedios. Cuanto más lejana la fecha, más provisional el
-    pronóstico. Usa el botón <b>«Solo abridores confirmados»</b> para quedarte con lo firme.</p>`;
-
-  const cont = document.getElementById("pred");
-  cont.innerHTML = DATA.fechas.map(d => {
-    const juegos = soloConfirmados ? d.games.filter(g => g.confirmed) : d.games;
-    if(!juegos.length) return "";
-    const conf = juegos.filter(g => g.confirmed).length;
-    const cuerpo = juegos.map((g,i) => juegoHTML(g, d.date+"_"+i)).join("");
-    return `<div class="daybar"><h2>${fechaLarga(d.date)}</h2><div class="rule"></div>
-      <span class="cnt">${juegos.length} partidos &middot; ${conf} con abridor confirmado</span>
-      </div>${cuerpo}`;
-  }).join("") || "<div class='empty'>No hay partidos que mostrar con este filtro.</div>";
+  renderDias();
+  renderDia();
+  document.getElementById("resumen").innerHTML = resumenGeneral();
 
   const filas = DATA.tabla.map((t,i) => `<tr>
       <td class="n pos">${i+1}</td>
       <td><img class="lg" src="${logo(t.id)}" alt="">${esc(t.name)}</td>
-      <td class="n">${t.wins}-${t.losses}</td>
-      <td class="n"><b>${t.elo}</b></td>
-      <td class="n">${esc(t.batAvg)}</td>
-      <td class="n">${esc(t.ops)}</td>
-      <td class="n">${esc(t.era)}</td>
-      <td class="n">${t.rsPg}</td>
-      <td class="n">${t.raPg}</td>
-      <td class="n">${pc(t.form10)}%</td>
+      <td class="n">${t.wins}-${t.losses}</td><td class="n"><b>${t.elo}</b></td>
+      <td class="n">${t.homeW}-${t.homeL}<br><span class="pos">${rec(t.homeW,t.homeL)}</span></td>
+      <td class="n">${t.awayW}-${t.awayL}<br><span class="pos">${rec(t.awayW,t.awayL)}</span></td>
+      <td class="n">${esc(t.batAvg)}</td><td class="n">${esc(t.ops)}</td>
+      <td class="n">${esc(t.era)}</td><td class="n">${t.rsPg}</td>
+      <td class="n">${t.raPg}</td><td class="n">${pc(t.form10)}%</td>
     </tr>`).join("");
   document.getElementById("tabla").innerHTML = `<div class="wrapt"><div class="scroll">
     <table><thead><tr>
       <th class="n">#</th><th>Equipo</th><th class="n">Récord</th><th class="n">Elo</th>
+      <th class="n">En casa</th><th class="n">De visita</th>
       <th class="n">AVG</th><th class="n">OPS</th><th class="n">ERA</th>
       <th class="n">CF/j</th><th class="n">CC/j</th><th class="n">Últ. 10</th>
     </tr></thead><tbody>${filas}</tbody></table></div>
     <div class="legend" style="padding:10px 2px 4px">
-      <span>Elo = fuerza estimada del equipo</span>
-      <span>CF/j = carreras a favor por juego</span>
+      <span>Elo = fuerza estimada</span><span>CF/j = carreras a favor por juego</span>
       <span>CC/j = carreras en contra por juego</span>
-      <span>Últ. 10 = victorias en los últimos 10 partidos</span>
+      <span>Últ. 10 = victorias en los últimos 10</span>
     </div></div>`;
 }
 
+/* ---------------------------------------------------- eventos */
+function panel(abierto){
+  document.getElementById("side").classList.toggle("on", abierto);
+  document.getElementById("backdrop").classList.toggle("on", abierto);
+}
+
+document.addEventListener("keydown", e => { if(e.key === "Escape") panel(false); });
+
 document.addEventListener("click", e => {
+  if(e.target.closest("#openside")){ panel(true); return; }
+  if(e.target.closest("#closeside") || e.target.closest("#backdrop")){ panel(false); return; }
+
+  const uth = e.target.closest(".uth");
+  if(uth){
+    umbral = Number(uth.dataset.u);
+    renderDia();
+    document.getElementById("resumen").innerHTML = resumenGeneral();
+    return;
+  }
+
+  const dia = e.target.closest(".day");
+  if(dia){ fechaSel = dia.dataset.d; renderDias(); renderDia(); return; }
+
   const more = e.target.closest(".more");
   if(more){
-    const box = document.getElementById("d"+more.dataset.i);
+    const id = more.dataset.i;
+    const box = document.getElementById("d"+id);
     box.classList.toggle("on");
-    more.textContent = box.classList.contains("on")
-      ? "Ocultar detalle"
+    const on = box.classList.contains("on");
+    if(on) abiertos.add(id); else abiertos.delete(id);
+    more.textContent = on ? "Ocultar detalle"
       : "Ver jugadores y estadísticas completas de ambos equipos";
     return;
   }
+
   const tab = e.target.closest(".tab");
   if(!tab) return;
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t === tab));
   const v = tab.dataset.v;
-  if(v === "conf"){
-    soloConfirmados = !soloConfirmados;
-    tab.classList.toggle("on", soloConfirmados);
-    tab.textContent = soloConfirmados
-      ? "Mostrando solo confirmados"
-      : "Solo abridores confirmados";
-    render();
-    return;
-  }
-  document.querySelectorAll(".tab").forEach(t => {
-    if(t.dataset.v !== "conf") t.classList.toggle("on", t === tab);
-  });
   document.getElementById("pred").classList.toggle("hide", v !== "pred");
+  document.getElementById("resumen").classList.toggle("hide", v !== "resumen");
   document.getElementById("tabla").classList.toggle("hide", v !== "tabla");
 });
 
+// Refresco automático cada minuto. Si el HTML se abre suelto (sin servidor) el
+// fetch falla y simplemente se queda con los datos incrustados.
+setInterval(async () => {
+  try{
+    const r = await fetch("/api", {cache:"no-store"});
+    if(!r.ok) return;
+    DATA = await r.json();
+    detectarCambios(DATA);
+    render();
+  }catch(e){ /* sin servidor: nada que hacer */ }
+}, 60000);
+
+detectarCambios(DATA);
 render();
 </script>
 </body>

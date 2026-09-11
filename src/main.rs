@@ -9,6 +9,7 @@ mod training;
 mod ui;
 
 use std::path::Path;
+use std::time::Duration;
 
 use burn::backend::ndarray::NdArrayDevice;
 use burn::backend::{Autodiff, NdArray};
@@ -59,19 +60,23 @@ fn main() {
         "ui" | "serve" => {
             let days = args.get(1).and_then(|a| a.parse().ok()).unwrap_or(live::DEFAULT_DAYS);
             let port = args.get(2).and_then(|a| a.parse().ok()).unwrap_or(8080);
-            let payload = build_payload::<Backend>(&device, days);
-            if let Err(e) = ui::write_file(HTML_OUT, &payload) {
+            let cada = args.get(3).and_then(|a| a.parse().ok()).unwrap_or(60u64);
+
+            let mut engine = new_engine::<Backend>(device, days);
+            let inicial = engine.tick().expect("no se pudo construir el panel");
+            if let Err(e) = ui::write_file(HTML_OUT, &inicial) {
                 eprintln!("no se pudo escribir {HTML_OUT}: {e}");
-            } else {
-                println!("Panel guardado en {HTML_OUT}");
             }
-            if let Err(e) = ui::serve(&payload, port) {
+            if let Err(e) = ui::serve_live(inicial, port, Duration::from_secs(cada), move || {
+                engine.tick()
+            }) {
                 eprintln!("no se pudo abrir el puerto {port}: {e}");
             }
         }
         "export" => {
             let days = args.get(1).and_then(|a| a.parse().ok()).unwrap_or(live::DEFAULT_DAYS);
-            let payload = build_payload::<Backend>(&device, days);
+            let mut engine = new_engine::<Backend>(device, days);
+            let payload = engine.tick().expect("no se pudo construir el panel");
             match ui::write_file(HTML_OUT, &payload) {
                 Ok(()) => println!("Panel guardado en {HTML_OUT}"),
                 Err(e) => eprintln!("no se pudo escribir {HTML_OUT}: {e}"),
@@ -98,25 +103,14 @@ fn main() {
     }
 }
 
-/// Descarga/lee los partidos y arma el payload completo del panel.
-fn build_payload<B: burn::tensor::backend::AutodiffBackend>(
-    device: &B::Device,
+/// Arranca el motor en vivo: histórico, entrenamiento y estadísticas.
+fn new_engine<B: burn::tensor::backend::AutodiffBackend>(
+    device: B::Device,
     days: i64,
-) -> serde_json::Value {
+) -> live::LiveEngine<B> {
     header("PANEL EN VIVO - TEMPORADA EN CURSO");
-    // Live: la temporada en curso se vuelve a bajar siempre, para que el modelo
-    // entrene con los resultados de anoche y no con una copia de hace horas.
-    let games = mlb::fetch_games(&DEFAULT_SEASONS, Freshness::Live)
-        .expect("fallo la descarga de partidos");
-    let ultimo = games.last().map(|g| g.date.as_str()).unwrap_or("?");
-    println!("{} partidos historicos cargados (ultimo: {ultimo}).", games.len());
-
-    let mut fb = FeatureBuilder::new();
-    let samples = fb.build(&games);
-
-    println!("Entrenando el modelo y prediciendo los proximos {days} dias...");
-    live::build_payload::<B>(device, &samples, &games, MIN_GP, days, &cfg())
-        .expect("no se pudo construir el panel")
+    live::LiveEngine::new(device, &DEFAULT_SEASONS, MIN_GP, days, cfg())
+        .expect("no se pudo arrancar el motor en vivo")
 }
 
 fn cfg() -> TrainConfig {
